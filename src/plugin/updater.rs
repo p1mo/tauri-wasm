@@ -3,7 +3,7 @@
 use futures::{Stream, channel::mpsc};
 use serde::Deserialize;
 use wasm_bindgen::{prelude::Closure, JsValue};
-use crate::event::Listen;
+use crate::api::event::Listen;
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct UpdateManifest {

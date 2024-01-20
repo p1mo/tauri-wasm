@@ -1,6 +1,7 @@
 use crate::{
-    event::{Event, Listen, Once},
     utils::ArrayIterator,
+    api::window::{Position, Size},
+    api::event::{Event, Listen, Once},
 };
 use futures::{
     channel::{mpsc, oneshot},

@@ -8,7 +8,7 @@ use wasm_bindgen::JsValue;
 /// # API bindings
 /// 
 /// Example
-/// ```no_run
+/// ```js, no_run
 /// import { getName } from '@tauri-apps/api';
 /// ```
 /// 
@@ -116,7 +116,7 @@ pub mod plugin {
 }
 
 /// # JS bindings like `console.log`, `console.error`
-#[cfg(feature = "js")]
+//#[cfg(feature = "js")]
 pub mod js;
 
 
@@ -143,5 +143,35 @@ impl From<serde_wasm_bindgen::Error> for Error {
 impl From<JsValue> for Error {
     fn from(e: JsValue) -> Self {
         Self::Command(format!("{:?}", e))
+    }
+}
+
+#[cfg(any(feature = "dialog", feature = "window"))]
+pub(crate) mod utils {
+    pub struct ArrayIterator {
+        pos: u32,
+        arr: js_sys::Array,
+    }
+
+    impl ArrayIterator {
+        pub fn new(arr: js_sys::Array) -> Self {
+            Self { pos: 0, arr }
+        }
+    }
+
+    impl Iterator for ArrayIterator {
+        type Item = wasm_bindgen::JsValue;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            let raw = self.arr.get(self.pos);
+
+            if raw.is_undefined() {
+                None
+            } else {
+                self.pos += 1;
+
+                Some(raw)
+            }
+        }
     }
 }

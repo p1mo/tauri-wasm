@@ -44,7 +44,7 @@
 //! It is recommended to allowlist only the APIs you use for optimal bundle size and security.
 
 use crate::{
-    event::{Event, Listen, Once},
+    api::event::{Event, Listen, Once},
     utils::ArrayIterator,
 };
 use futures::{

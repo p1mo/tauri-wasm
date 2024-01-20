@@ -1,5 +1,5 @@
 //! The event system allows you to emit events to the backend and listen to events from it.
-
+use crate::js::console;
 use futures::{
     channel::{mpsc, oneshot},
     Future, FutureExt, Stream, StreamExt,
@@ -89,7 +89,7 @@ pub(crate) struct Listen<T> {
 
 impl<T> Drop for Listen<T> {
     fn drop(&mut self) {
-        log::debug!("Calling unlisten for listen callback");
+        console::log("Calling unlisten for listen callback");
         self.unlisten.call0(&wasm_bindgen::JsValue::NULL).unwrap();
     }
 }
@@ -159,7 +159,7 @@ pub(crate) struct Once<T> {
 impl<T> Drop for Once<T> {
     fn drop(&mut self) {
         self.rx.close();
-        log::debug!("Calling unlisten for once callback");
+        console::log("Calling unlisten for once callback");
         self.unlisten.call0(&wasm_bindgen::JsValue::NULL).unwrap();
     }
 }

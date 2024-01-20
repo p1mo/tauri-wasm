@@ -39,6 +39,7 @@
 //! ```
 //! It is recommended to allowlist only the APIs you use for optimal bundle size and security.
 
+use crate::js::console;
 use futures::{channel::mpsc, Stream, StreamExt};
 use wasm_bindgen::{prelude::Closure, JsValue};
 
@@ -102,7 +103,7 @@ struct Listen<T> {
 
 impl<T> Drop for Listen<T> {
     fn drop(&mut self) {
-        log::debug!("Unregistering shortcut {:?}", self.shortcut);
+        console::log("Unregistering shortcut {:?}", self.shortcut);
         inner::unregister(self.shortcut.clone());
     }
 }
