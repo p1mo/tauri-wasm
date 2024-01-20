@@ -1,0 +1,10 @@
+[submodule "tauri-v2"]
+	path = tauri-v2
+	url = https://github.com/tauri-apps/tauri
+	branch = dev
+	tag = tauri-v2.0.0-alpha.20
+
+[submodule "tauri-plugins"]
+	path = tauri-plugins
+	url = https://github.com/tauri-apps/plugins-workspace
+	branch = v2
