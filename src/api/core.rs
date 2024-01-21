@@ -40,7 +40,7 @@ use url::Url;
 /// @return the URL that can be used as source on the webview.
 #[inline(always)]
 pub async fn convert_file_src(file_path: &str, protocol: Option<&str>) -> crate::Result<Url> {
-    let js_val = inner::convertFileSrc(file_path, protocol).await?;
+    let js_val = base::convertFileSrc(file_path, protocol).await?;
 
     Ok(serde_wasm_bindgen::from_value(js_val)?)
 }
@@ -65,7 +65,7 @@ pub async fn convert_file_src(file_path: &str, protocol: Option<&str>) -> crate:
 /// @return A promise resolving or rejecting to the backend response.
 #[inline(always)]
 pub async fn invoke<A: Serialize, R: DeserializeOwned>(cmd: &str, args: &A) -> crate::Result<R> {
-    let raw = inner::invoke(cmd, serde_wasm_bindgen::to_value(args)?).await?;
+    let raw = base::invoke(cmd, serde_wasm_bindgen::to_value(args)?).await?;
 
     serde_wasm_bindgen::from_value(raw).map_err(Into::into)
 }
@@ -80,7 +80,7 @@ pub async fn transform_callback<T: DeserializeOwned>(
     callback: &dyn Fn(T),
     once: bool,
 ) -> crate::Result<f64> {
-    let js_val = inner::transformCallback(
+    let js_val = base::transformCallback(
         &|raw| callback(serde_wasm_bindgen::from_value(raw).unwrap()),
         once,
     )

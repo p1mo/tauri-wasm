@@ -103,7 +103,7 @@ struct Listen<T> {
 
 impl<T> Drop for Listen<T> {
     fn drop(&mut self) {
-        console::log("Unregistering shortcut {:?}", self.shortcut);
+        console::log(format!("Unregistering shortcut {:?}", self.shortcut).as_str());
         inner::unregister(self.shortcut.clone());
     }
 }

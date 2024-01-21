@@ -2,7 +2,6 @@
 //! **Version:** 2.0.0-alpha-20
 
 
-//use std::path::PathBuf;
 use wasm_bindgen::JsValue;
 
 /// # API bindings
@@ -132,6 +131,9 @@ pub enum Error {
     #[cfg(any(feature = "event", feature = "window"))]
     #[error("Oneshot cancelled: {0}")]
     OneshotCanceled(#[from] futures::channel::oneshot::Canceled),
+    #[cfg(feature = "fs")]
+    #[error("Could not convert path to string")]
+    Utf8(std::path::PathBuf),
 }
 
 impl From<serde_wasm_bindgen::Error> for Error {

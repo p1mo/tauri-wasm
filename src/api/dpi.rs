@@ -1,18 +1,14 @@
-use crate::{
-    utils::ArrayIterator,
-    api::window::{Position, Size},
-    api::event::{Event, Listen, Once},
-};
-use futures::{
-    channel::{mpsc, oneshot},
-    Stream,
-};
-use js_sys::Array;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use std::fmt::Display;
-use wasm_bindgen::{prelude::Closure, JsCast, JsValue};
+#[derive(Debug, Clone, PartialEq)]
+pub enum Position {
+    Physical(PhysicalPosition),
+    Logical(LogicalPosition),
+}
 
-
+#[derive(Debug, Clone, PartialEq)]
+pub enum Size {
+    Physical(PhysicalSize),
+    Logical(LogicalSize),
+}
 
 /// A position represented in logical pixels.
 #[derive(Debug, Clone, PartialEq)]
@@ -28,8 +24,8 @@ impl LogicalPosition {
     }
 
     pub fn to_physical(self, scale_factor: f64) -> PhysicalPosition {
-        let x = self.x() as f64 * scale_factor;
-        let y = self.y() as f64 * scale_factor;
+        let x = self.0.x() as f64 * scale_factor;
+        let y = self.0.y() as f64 * scale_factor;
 
         PhysicalPosition::new(x as i32, y as i32)
     }
@@ -102,8 +98,8 @@ impl PhysicalPosition {
 
     #[inline]
     pub fn to_logical(&self, scale_factor: f64) -> LogicalPosition {
-        let x = self.x() as f64 / scale_factor;
-        let y = self.y() as f64 / scale_factor;
+        let x = self.0.x() as f64 / scale_factor;
+        let y = self.0.y() as f64 / scale_factor;
 
         LogicalPosition::new(x as i32, y as i32)
     }
@@ -120,6 +116,7 @@ impl PhysicalPosition {
     pub fn set_y(&self, y: i32) {
         self.0.set_y(y)
     }
+
 }
 
 impl From<PhysicalPosition> for Position {
@@ -164,21 +161,74 @@ impl From<PhysicalSize> for Size {
 
 
 mod base {
-    use js_sys::Array;
-    use wasm_bindgen::{
-        prelude::{wasm_bindgen, Closure},
-        JsValue,
-    };
+    use wasm_bindgen::prelude::wasm_bindgen;
 
     #[wasm_bindgen(module = "/src/scripts/api/dpi.js")]
     extern "C" {
         #[derive(Debug, Clone, PartialEq)]
         pub type LogicalPosition;
+        #[wasm_bindgen(constructor)]
+        pub fn new(x: i32, y: i32) -> LogicalPosition;
+        #[wasm_bindgen(method, getter)]
+        pub fn x(this: &LogicalPosition) -> i32;
+        #[wasm_bindgen(method, setter)]
+        pub fn set_x(this: &LogicalPosition, x: i32);
+        #[wasm_bindgen(method, getter)]
+        pub fn y(this: &LogicalPosition) -> i32;
+        #[wasm_bindgen(method, setter)]
+        pub fn set_y(this: &LogicalPosition, y: i32);
+    }
+
+    #[wasm_bindgen(module = "/src/scripts/api/dpi.js")]
+    extern "C" {
         #[derive(Debug, Clone, PartialEq)]
         pub type PhysicalPosition;
+        #[wasm_bindgen(constructor)]
+        pub fn new(x: i32, y: i32) -> PhysicalPosition;
+        #[wasm_bindgen(method)]
+        pub fn toLogical(this: &PhysicalPosition, scaleFactor: i32) -> LogicalPosition;
+        #[wasm_bindgen(method, getter)]
+        pub fn x(this: &PhysicalPosition) -> i32;
+        #[wasm_bindgen(method, setter)]
+        pub fn set_x(this: &PhysicalPosition, x: i32);
+        #[wasm_bindgen(method, getter)]
+        pub fn y(this: &PhysicalPosition) -> i32;
+        #[wasm_bindgen(method, setter)]
+        pub fn set_y(this: &PhysicalPosition, y: i32);
+    }
+
+    #[wasm_bindgen(module = "/src/scripts/api/dpi.js")]
+    extern "C" {
         #[derive(Debug, Clone, PartialEq)]
         pub type LogicalSize;
+        #[wasm_bindgen(constructor)]
+        pub fn new(width: u32, height: u32) -> LogicalSize;
+        #[wasm_bindgen(method, getter)]
+        pub fn width(this: &LogicalSize) -> u32;
+        #[wasm_bindgen(method, setter)]
+        pub fn set_width(this: &LogicalSize, width: u32);
+        #[wasm_bindgen(method, getter)]
+        pub fn height(this: &LogicalSize) -> u32;
+        #[wasm_bindgen(method, setter)]
+        pub fn set_height(this: &LogicalSize, height: u32);
+    }
+
+    #[wasm_bindgen(module = "/src/scripts/api/dpi.js")]
+    extern "C" {
         #[derive(Debug, Clone, PartialEq)]
         pub type PhysicalSize;
+        #[wasm_bindgen(constructor)]
+        pub fn new(width: u32, height: u32) -> PhysicalSize;
+        #[wasm_bindgen(method)]
+        pub fn toLogical(this: &PhysicalSize, scaleFactor: u32) -> LogicalSize;
+        #[wasm_bindgen(method, getter)]
+        pub fn width(this: &PhysicalSize) -> u32;
+        #[wasm_bindgen(method, setter)]
+        pub fn set_width(this: &PhysicalSize, width: u32);
+        #[wasm_bindgen(method, getter)]
+        pub fn height(this: &PhysicalSize) -> u32;
+        #[wasm_bindgen(method, setter)]
+        pub fn set_height(this: &PhysicalSize, height: u32);
     }
+
 }
