@@ -71,7 +71,7 @@ fn main() {
             <td align="center"><code>api</code></td>
             <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
             <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
-            <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+            <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
         </tr>
         <tr>
             <td align="center"><ul><li> [x] </li></ul></td>
@@ -79,7 +79,7 @@ fn main() {
             <td align="center"><code>api</code></td>
             <td align="center"><code>desktop</code></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
-            <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+            <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
         </tr>
         <tr>
             <td align="center"><ul><li> [x] </li></ul></td>
@@ -87,7 +87,7 @@ fn main() {
             <td align="center"><code>api</code></td>
             <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
             <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
-            <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+            <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
         </tr>
         <tr>
             <td align="center"><ul><li> [ ] </li></ul></td>
@@ -249,7 +249,7 @@ fn main() {
             <td align="center"><code>plugin</code></td>
             <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
             <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
-            <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+            <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
         </tr>
         <tr>
             <td align="center"><ul><li> [ ] </li></ul></td>
