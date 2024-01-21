@@ -52,7 +52,10 @@ pub mod plugin {
     /// # Barcode Scanner bindings
     #[cfg(feature = "barcode-scanner")]
     pub mod barcode_scanner;
-    /// # cli bindings
+    /// # Biometric Scanner bindings
+    #[cfg(feature = "biometric")]
+    pub mod biometric;
+    /// # Cli bindings
     #[cfg(feature = "cli")]
     pub mod cli;
     /// # Clipboard Manager bindings
@@ -76,6 +79,9 @@ pub mod plugin {
     /// # Log bindings
     #[cfg(feature = "log")]
     pub mod log;
+    /// # Nfc bindings
+    #[cfg(feature = "nfc")]
+    pub mod nfc;
     /// # Notification bindings
     #[cfg(feature = "notification")]
     pub mod notification;

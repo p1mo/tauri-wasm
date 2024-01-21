@@ -25,6 +25,7 @@ plugin-all = [
     "authenticator",
     "autostart",
     "barcode-scanner",
+    "biometric",
     "cli",
     "clipboard-manager",
     "deep-link",
@@ -33,6 +34,7 @@ plugin-all = [
     "global-shortcut",
     "http",
     "log",
+    "nfc",
     "notification",
     "os",
     "positioner",
@@ -49,6 +51,7 @@ plugin-all = [
 authenticator = []
 autostart = []
 barcode-scanner = []
+biometric = []
 cli = []
 clipboard-manager = []
 deep-link = []
@@ -57,6 +60,7 @@ fs = []
 global-shortcut = []
 http = []
 log = []
+nfc = []
 notification = []
 os = []
 positioner = []

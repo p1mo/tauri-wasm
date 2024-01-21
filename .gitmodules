@@ -2,7 +2,7 @@
 	path = tauri-v2
 	url = https://github.com/tauri-apps/tauri
 	branch = dev
-	tag = tauri-v2.0.0-alpha.20
+	tag = tauri-v2.0.0-alpha.21
 
 [submodule "tauri-plugins"]
 	path = tauri-plugins
