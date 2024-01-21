@@ -15,7 +15,7 @@
 //! It is recommended to allowlist only the APIs you use for optimal bundle size and security.
 
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+//use std::path::PathBuf;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum Arch {
@@ -47,8 +47,8 @@ pub enum Arch {
 pub enum Platform {
     #[serde(rename = "linux")]
     Linux,
-    #[serde(rename = "darwin")]
-    Darwin,
+    #[serde(rename = "macos")]
+    Macos,
     #[serde(rename = "ios")]
     Ios,
     #[serde(rename = "freebsd")]
@@ -63,24 +63,68 @@ pub enum Platform {
     Solaris,
     #[serde(rename = "android")]
     Android,
-    #[serde(rename = "win32")]
-    Win32,
+    #[serde(rename = "windows")]
+    Windows,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum OsKind {
-    #[serde(rename = "Linux")]
+    #[serde(rename = "linux")]
     Linux,
-    #[serde(rename = "Darwin")]
-    Darwin,
-    #[serde(rename = "Windows_NT")]
-    WindowsNT,
+    #[serde(rename = "windows")]
+    Windows,
+    #[serde(rename = "macos")]
+    Macos,
+    #[serde(rename = "ios")]
+    Ios,
+    #[serde(rename = "android")]
+    Android,
 }
 
 /// Returns the operating system CPU architecture for which the tauri app was compiled.
 #[inline(always)]
 pub async fn arch() -> crate::Result<Arch> {
-    let raw = inner::arch().await?;
+    let raw = base::arch().await?;
+
+    Ok(serde_wasm_bindgen::from_value(raw)?)
+}
+
+/// Returns the operating system eol.
+#[inline(always)]
+pub async fn eol() -> crate::Result<String> {
+    let raw = base::eol().await?;
+
+    Ok(serde_wasm_bindgen::from_value(raw)?)
+}
+
+/// Returns the binary extension.
+#[inline(always)]
+pub async fn exe_extension() -> crate::Result<String> {
+    let raw = base::exe_extension().await?;
+
+    Ok(serde_wasm_bindgen::from_value(raw)?)
+}
+
+/// Returns the operating system Family.
+#[inline(always)]
+pub async fn family() -> crate::Result<String> {
+    let raw = base::family().await?;
+
+    Ok(serde_wasm_bindgen::from_value(raw)?)
+}
+
+/// Returns the operating system Hostname.
+#[inline(always)]
+pub async fn hostname() -> crate::Result<String> {
+    let raw = base::hostname().await?;
+
+    Ok(serde_wasm_bindgen::from_value(raw)?)
+}
+
+/// Returns the operating system Local.
+#[inline(always)]
+pub async fn locale() -> crate::Result<String> {
+    let raw = base::locale().await?;
 
     Ok(serde_wasm_bindgen::from_value(raw)?)
 }
@@ -88,15 +132,7 @@ pub async fn arch() -> crate::Result<Arch> {
 /// Returns a string identifying the operating system platform. The value is set at compile time.
 #[inline(always)]
 pub async fn platform() -> crate::Result<Platform> {
-    let raw = inner::platform().await?;
-
-    Ok(serde_wasm_bindgen::from_value(raw)?)
-}
-
-/// Returns the operating system's default directory for temporary files.
-#[inline(always)]
-pub async fn tempdir() -> crate::Result<PathBuf> {
-    let raw = inner::tempdir().await?;
+    let raw = base::platform().await?;
 
     Ok(serde_wasm_bindgen::from_value(raw)?)
 }
@@ -104,7 +140,7 @@ pub async fn tempdir() -> crate::Result<PathBuf> {
 /// Returns [`OsKind::Linux`] on Linux, [`OsKind::Darwin`] on macOS, and [`OsKind::WindowsNT`] on Windows.
 #[inline(always)]
 pub async fn kind() -> crate::Result<OsKind> {
-    let raw = inner::kind().await?;
+    let raw = base::kind().await?;
 
     Ok(serde_wasm_bindgen::from_value(raw)?)
 }
@@ -112,12 +148,12 @@ pub async fn kind() -> crate::Result<OsKind> {
 /// Returns a string identifying the kernel version.
 #[inline(always)]
 pub async fn version() -> crate::Result<String> {
-    let raw = inner::version().await?;
+    let raw = base::version().await?;
 
     Ok(serde_wasm_bindgen::from_value(raw)?)
 }
 
-mod inner {
+mod base {
     use wasm_bindgen::prelude::*;
 
     #[wasm_bindgen(module = "/src/scripts/plugins/os.js")]
@@ -125,9 +161,17 @@ mod inner {
         #[wasm_bindgen(catch)]
         pub async fn arch() -> Result<JsValue, JsValue>;
         #[wasm_bindgen(catch)]
-        pub async fn platform() -> Result<JsValue, JsValue>;
+        pub async fn eol() -> Result<JsValue, JsValue>;
+        #[wasm_bindgen(catch, js_name = "exeExtension")]
+        pub async fn exe_extension() -> Result<JsValue, JsValue>;
         #[wasm_bindgen(catch)]
-        pub async fn tempdir() -> Result<JsValue, JsValue>;
+        pub async fn family() -> Result<JsValue, JsValue>;
+        #[wasm_bindgen(catch)]
+        pub async fn hostname() -> Result<JsValue, JsValue>;
+        #[wasm_bindgen(catch)]
+        pub async fn locale() -> Result<JsValue, JsValue>;
+        #[wasm_bindgen(catch)]
+        pub async fn platform() -> Result<JsValue, JsValue>;
         #[wasm_bindgen(catch, js_name = "type")]
         pub async fn kind() -> Result<JsValue, JsValue>;
         #[wasm_bindgen(catch)]
