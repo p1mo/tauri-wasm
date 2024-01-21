@@ -110,7 +110,7 @@ fn main() {
             <td><code>path</code></td>
             <td align="center"><code>api</code></td>
             <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
-            <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+            <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
         <tr>
