@@ -66,7 +66,11 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>app</code></td>
             <td align="center"><code>api</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
             <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
         </tr>
@@ -74,7 +78,11 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>core</code></td>
             <td align="center"><code>api</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
             <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
         </tr>
@@ -82,7 +90,9 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>dpi</code></td>
             <td align="center"><code>api</code></td>
-            <td align="center"><code>desktop</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
         </tr>
@@ -90,7 +100,11 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>event</code></td>
             <td align="center"><code>api</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
             <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
         </tr>
@@ -98,7 +112,9 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>menu</code></td>
             <td align="center"><code>api</code></td>
-            <td align="center"><code>desktop</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -106,7 +122,9 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>mocks</code></td>
             <td align="center"><code>api</code></td>
-            <td align="center"><code>desktop</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -114,7 +132,11 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>path</code></td>
             <td align="center"><code>api</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -122,7 +144,9 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>tray</code></td>
             <td align="center"><code>api</code></td>
-            <td align="center"><code>desktop</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -130,7 +154,9 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>window</code></td>
             <td align="center"><code>api</code></td>
-            <td align="center"><code>desktop</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -140,7 +166,11 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>authenticator</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -148,7 +178,9 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>autostart</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -156,7 +188,9 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>barcode-scanner</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -164,7 +198,9 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>biometric</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -172,7 +208,9 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>cli</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -180,7 +218,11 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>clipboard-manager</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -188,7 +230,9 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>deep-link</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -196,7 +240,9 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>dialog</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -204,7 +250,11 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>fs</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -212,7 +262,9 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>global-shortcut</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -220,7 +272,11 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>http</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -228,7 +284,11 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>log</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -236,7 +296,9 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>nfc</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -244,7 +306,11 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>notification</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -252,7 +318,11 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>os</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
             <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
         </tr>
@@ -260,7 +330,9 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>positioner</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -268,7 +340,11 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>process</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -276,7 +352,9 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>shell</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -284,7 +362,11 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>sql</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -292,7 +374,11 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>store</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -300,7 +386,11 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>stronghold</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -308,7 +398,9 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>updater</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -316,7 +408,11 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>upload</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -324,7 +420,11 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>websocket</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -332,7 +432,9 @@ fn main() {
             <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>window-state</code></td>
             <td align="center"><code>plugin</code></td>
-            <td align="center"><code>desktop</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
@@ -342,7 +444,11 @@ fn main() {
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>console</code></td>
             <td align="center"><code>core</code></td>
-            <td align="center"><code>desktop</code>&nbsp;<code>mobile</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+                &nbsp;
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
             <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
