@@ -1,8 +1,12 @@
 <h1 align="center">
     <code>tauri-wasm</code>
-    <font>raw bindings to the </font>
-    <a href="https://beta.tauri.app/references/v2/js">Tauri v2 API</a>
 </h1>
+
+<h3 align="center">
+    <font>Raw bindings to the </font>
+    <a href="https://beta.tauri.app/references/v2/js">Tauri v2</a>
+    <font> API & Plugins </font>
+</h3>
 
 <div align="center">
     <a href="https://p1mo.github.io/tauri-wasm/tauri_wasm"><img src="https://img.shields.io/badge/docs-main-0084ff"></a>
