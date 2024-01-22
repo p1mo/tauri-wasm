@@ -8,6 +8,8 @@
     <font> API & Plugins </font>
 </h3>
 
+---
+
 <div align="center">
     <a href="https://p1mo.github.io/tauri-wasm/tauri_wasm"><img src="https://img.shields.io/badge/docs-main-0084ff"></a>
     <img src="https://img.shields.io/badge/API_Version-2.0.0--alpha--20-24c620">
