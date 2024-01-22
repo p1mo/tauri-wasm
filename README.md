@@ -182,7 +182,7 @@ fn main() {
                 <img src="https://img.shields.io/badge/Desktop-3652AD">
             </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
-            <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+            <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
         </tr>
         <tr>
             <td align="center"><ul><li> [ ] </li></ul></td>
