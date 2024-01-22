@@ -175,7 +175,7 @@ fn main() {
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
         <tr>
-            <td align="center"><ul><li> [ ] </li></ul></td>
+            <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>autostart</code></td>
             <td align="center"><code>plugin</code></td>
             <td align="center">
