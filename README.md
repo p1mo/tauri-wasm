@@ -1,4 +1,4 @@
-<img src=".github/banner.png" alt="tauri-wasm banner" />
+<a href="https://github.com/p1mo/tauri-wasm"><img src=".github/banner.png" alt="tauri-wasm banner" /></a>
 
 <h3 align="center">
     <font>Raw bindings to the </font>
