@@ -1,6 +1,4 @@
-<h1 align="center">
-    <code>tauri-wasm</code>
-</h1>
+<img src=".github/banner.png" alt="tauri-wasm banner" />
 
 <h3 align="center">
     <font>Raw bindings to the </font>
