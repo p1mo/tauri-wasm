@@ -9,11 +9,17 @@
 ---
 
 <div align="center">
-    <a href="https://p1mo.github.io/tauri-wasm/tauri_wasm"><img src="https://img.shields.io/badge/docs-main-0084ff"></a>
-    <img src="https://img.shields.io/badge/API_Version-2.0.0--alpha--20-24c620">
+    <a href="https://p1mo.github.io/tauri-wasm/tauri_wasm">
+        <img src="https://img.shields.io/badge/docs-main-6DA4AA">
+    </a>
     <a href="/LICENSE_MIT"><img src="https://img.shields.io/badge/license-MIT-0084ff"></a>
     <a href="/LICENSE_APACHE-2.0"><img src="https://img.shields.io/badge/license-APACHE--2.0-0084ff"></a>
-    <a href="https://github.com/JonasKruckenberg/tauri-sys"><img src="https://img.shields.io/badge/v1_bindings-tauri__sys-d81fcd"></a>
+</div>
+
+<div align="center">
+    <img src="https://img.shields.io/badge/API_Version-2.0.0--alpha--14-FF6868">
+    <img src="https://img.shields.io/badge/tauri--wasm-unofficial-FE7A36">
+    <a href="https://github.com/JonasKruckenberg/tauri-sys"><img src="https://img.shields.io/badge/tauri__sys-tauri_v1-65B741"></a>
 </div>
 
 ### Cargo.toml
