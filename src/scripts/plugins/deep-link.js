@@ -16,7 +16,7 @@ async function _unlisten(event, eventId) {
 async function listen(event, handler, options) {
   return invoke("plugin:event|listen", {
     event,
-    windowLabel: options?.target,
+    target: options?.target,
     handler: transformCallback(handler)
   }).then((eventId) => {
     return async () => _unlisten(event, eventId);

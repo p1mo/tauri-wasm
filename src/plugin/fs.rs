@@ -1,27 +1,25 @@
 //! Access the file system.
 //!
-//! The APIs must be added to `tauri.allowlist.fs` in `tauri.conf.json`:
+//! The APIs must be added to `plugins.fs` in `tauri.conf.json`:
 //! ```json
 //! {
-//!   "tauri": {
-//!     "allowlist": {
-//!       "fs": {
-//!         "all": true, // enable all FS APIs
-//!         "readFile": true,
-//!         "writeFile": true,
-//!         "readDir": true,
-//!         "copyFile": true,
-//!         "createDir": true,
-//!         "removeDir": true,
-//!         "removeFile": true,
-//!         "renameFile": true,
-//!         "exists": true
-//!       }
+//!   "plugins": {
+//!     "fs": {
+//!       "all": true, // enable all FS APIs
+//!       "readFile": true,
+//!       "writeFile": true,
+//!       "readDir": true,
+//!       "copyFile": true,
+//!       "createDir": true,
+//!       "removeDir": true,
+//!       "removeFile": true,
+//!       "renameFile": true,
+//!       "exists": true
 //!     }
 //!   }
 //! }
 //! ```
-//! It is recommended to allowlist only the APIs you use for optimal bundle size and security.
+//!
 use crate::Error;
 use js_sys::ArrayBuffer;
 use serde::{Deserialize, Serialize};
@@ -88,12 +86,12 @@ struct FsTextFileOption {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::fs;
+/// use tauri_wasm::plugin::fs;
 ///
 /// fs::copy_file(source, destination, BaseDirectory::Download).expect("could not copy file");
 /// ```
 ///
-/// Requires [`allowlist > fs > copyFile`](https://tauri.app/v1/api/js/fs) to be enabled.
+/// Requires [`plugins > fs > copyFile`](https://beta.tauri.app/features/file-system) to be enabled.
 pub async fn copy_file(source: &Path, destination: &Path, dir: BaseDirectory) -> crate::Result<()> {
     let Some(source) = source.to_str() else {
         return Err(Error::Utf8(source.to_path_buf()));
@@ -119,12 +117,12 @@ pub async fn copy_file(source: &Path, destination: &Path, dir: BaseDirectory) ->
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::fs;
+/// use tauri_wasm::plugin::fs;
 ///
 /// fs::create_dir(dir, BaseDirectory::Download).expect("could not create directory");
 /// ```
 ///
-/// Requires [`allowlist > fs > createDir`](https://tauri.app/v1/api/js/fs) to be enabled.
+/// Requires [`plugins > fs > createDir`](https://beta.tauri.app/features/file-system) to be enabled.
 pub async fn create_dir(dir: &Path, base_dir: BaseDirectory) -> crate::Result<()> {
     let recursive = Some(false);
 
@@ -147,12 +145,12 @@ pub async fn create_dir(dir: &Path, base_dir: BaseDirectory) -> crate::Result<()
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::fs;
+/// use tauri_wasm::plugin::fs;
 ///
 /// fs::create_dir_all(dir, BaseDirectory::Download).expect("could not create directory");
 /// ```
 ///
-/// Requires [`allowlist > fs > createDir`](https://tauri.app/v1/api/js/fs) to be enabled.
+/// Requires [`plugins > fs > createDir`](https://beta.tauri.app/features/file-system) to be enabled.
 pub async fn create_dir_all(dir: &Path, base_dir: BaseDirectory) -> crate::Result<()> {
     let recursive = Some(true);
 
@@ -175,12 +173,12 @@ pub async fn create_dir_all(dir: &Path, base_dir: BaseDirectory) -> crate::Resul
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::fs;
+/// use tauri_wasm::plugin::fs;
 ///
 /// let file_exists = fs::exists(path, BaseDirectory::Download).expect("could not check if path exists");
 /// ```
 ///
-/// Requires [`allowlist > fs > exists`](https://tauri.app/v1/api/js/fs) to be enabled.
+/// Requires [`plugins > fs > exists`](https://beta.tauri.app/features/file-system) to be enabled.
 pub async fn exists(path: &Path, dir: BaseDirectory) -> crate::Result<bool> {
     let Some(path) = path.to_str() else {
         return Err(Error::Utf8(path.to_path_buf()));
@@ -200,12 +198,12 @@ pub async fn exists(path: &Path, dir: BaseDirectory) -> crate::Result<bool> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::fs;
+/// use tauri_wasm::plugin::fs;
 ///
 /// let contents = fs::read_binary_file(filePath, BaseDirectory::Download).expect("could not read file contents");
 /// ```
 ///
-/// Requires [`allowlist > fs > readBinaryFile`](https://tauri.app/v1/api/js/fs) to be enabled.
+/// Requires [`plugins > fs > readBinaryFile`](https://beta.tauri.app/features/file-system) to be enabled.
 pub async fn read_binary_file(path: &Path, dir: BaseDirectory) -> crate::Result<Vec<u8>> {
     let Some(path) = path.to_str() else {
         return Err(Error::Utf8(path.to_path_buf()));
@@ -225,12 +223,12 @@ pub async fn read_binary_file(path: &Path, dir: BaseDirectory) -> crate::Result<
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::fs;
+/// use tauri_wasm::plugin::fs;
 ///
 /// let files = fs::read_dir(path, BaseDirectory::Download).expect("could not read directory");
 /// ```
 ///
-/// Requires [`allowlist > fs > readDir`](https://tauri.app/v1/api/js/fs) to be enabled.
+/// Requires [`plugins > fs > readDir`](https://beta.tauri.app/features/file-system) to be enabled.
 pub async fn read_dir(path: &Path, dir: BaseDirectory) -> crate::Result<Vec<FileEntry>> {
     let recursive = Some(false);
     let Some(path) = path.to_str() else {
@@ -254,12 +252,12 @@ pub async fn read_dir(path: &Path, dir: BaseDirectory) -> crate::Result<Vec<File
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::fs;
+/// use tauri_wasm::plugin::fs;
 ///
 /// let files = fs::read_dir_all(path, BaseDirectory::Download).expect("could not read directory");
 /// ```
 ///
-/// Requires [`allowlist > fs > readDir`](https://tauri.app/v1/api/js/fs) to be enabled.
+/// Requires [`plugins > fs > readDir`](https://beta.tauri.app/features/file-system) to be enabled.
 pub async fn read_dir_all(path: &Path, dir: BaseDirectory) -> crate::Result<Vec<FileEntry>> {
     let recursive = Some(true);
     let Some(path) = path.to_str() else {
@@ -283,12 +281,12 @@ pub async fn read_dir_all(path: &Path, dir: BaseDirectory) -> crate::Result<Vec<
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::fs;
+/// use tauri_wasm::plugin::fs;
 ///
 /// let contents = fs::readTextFile(path, BaseDirectory::Download).expect("could not read file as text");
 /// ```
 ///
-/// Requires [`allowlist > fs > readTextFile`](https://tauri.app/v1/api/js/fs) to be enabled.
+/// Requires [`plugins > fs > readTextFile`](https://beta.tauri.app/features/file-system) to be enabled.
 pub async fn read_text_file(path: &Path, dir: BaseDirectory) -> crate::Result<String> {
     let Some(path) = path.to_str() else {
         return Err(Error::Utf8(path.to_path_buf()));
@@ -309,12 +307,12 @@ pub async fn read_text_file(path: &Path, dir: BaseDirectory) -> crate::Result<St
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::fs;
+/// use tauri_wasm::plugin::fs;
 ///
 /// fs::remove_dir(path, BaseDirectory::Download).expect("could not remove directory");
 /// ```
 ///
-/// Requires [`allowlist > fs > removeDir`](https://tauri.app/v1/api/js/fs) to be enabled.
+/// Requires [`plugins > fs > removeDir`](https://beta.tauri.app/features/file-system) to be enabled.
 pub async fn remove_dir(dir: &Path, base_dir: BaseDirectory) -> crate::Result<()> {
     let recursive = Some(false);
     let Some(dir) = dir.to_str() else {
@@ -336,12 +334,12 @@ pub async fn remove_dir(dir: &Path, base_dir: BaseDirectory) -> crate::Result<()
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::fs;
+/// use tauri_wasm::plugin::fs;
 ///
 /// fs::remove_dir_all(path, BaseDirectory::Download).expect("could not remove directory");
 /// ```
 ///
-/// Requires [`allowlist > fs > removeDir`](https://tauri.app/v1/api/js/fs) to be enabled.
+/// Requires [`plugins > fs > removeDir`](https://beta.tauri.app/features/file-system) to be enabled.
 pub async fn remove_dir_all(dir: &Path, base_dir: BaseDirectory) -> crate::Result<()> {
     let recursive = Some(true);
     let Some(dir) = dir.to_str() else {
@@ -363,12 +361,12 @@ pub async fn remove_dir_all(dir: &Path, base_dir: BaseDirectory) -> crate::Resul
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::fs;
+/// use tauri_wasm::plugin::fs;
 ///
 /// fs::remove_file(path, BaseDirectory::Download).expect("could not remove file");
 /// ```
 ///
-/// Requires [`allowlist > fs > removeFile`](https://tauri.app/v1/api/js/fs) to be enabled.
+/// Requires [`plugins > fs > removeFile`](https://beta.tauri.app/features/file-system) to be enabled.
 pub async fn remove_file(file: &Path, dir: BaseDirectory) -> crate::Result<()> {
     let Some(file) = file.to_str() else {
         return Err(Error::Utf8(file.to_path_buf()));
@@ -386,12 +384,12 @@ pub async fn remove_file(file: &Path, dir: BaseDirectory) -> crate::Result<()> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::fs;
+/// use tauri_wasm::plugin::fs;
 ///
 /// fs::rename_file(old_path, new_path, BaseDirectory::Download).expect("could not rename file");
 /// ```
 ///
-/// Requires [`allowlist > fs > renameFile`](https://tauri.app/v1/api/js/fs) to be enabled.
+/// Requires [`plugins > fs > renameFile`](https://beta.tauri.app/features/file-system) to be enabled.
 pub async fn rename_file(
     old_path: &Path,
     new_path: &Path,
@@ -418,12 +416,12 @@ pub async fn rename_file(
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::fs;
+/// use tauri_wasm::plugin::fs;
 ///
 /// fs::write_binary_file(path, contents, BaseDirectory::Download).expect("could not writes binary file");
 /// ```
 ///
-/// Requires [`allowlist > fs > writeBinaryFile`](https://tauri.app/v1/api/js/fs) to be enabled.
+/// Requires [`plugins > fs > writeBinaryFile`](https://beta.tauri.app/features/file-system) to be enabled.
 pub async fn write_binary_file(
     path: &Path,
     contents: ArrayBuffer,
@@ -446,12 +444,12 @@ pub async fn write_binary_file(
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::fs;
+/// use tauri_wasm::plugin::fs;
 ///
 /// fs::write_text_file(path, contents, BaseDirectory::Download).expect("could not writes binary file");
 /// ```
 ///
-/// Requires [`allowlist > fs > writeTextFile`](https://tauri.app/v1/api/js/fs) to be enabled.
+/// Requires [`plugins > fs > writeTextFile`](https://beta.tauri.app/features/file-system) to be enabled.
 pub async fn write_text_file(path: &Path, contents: &str, dir: BaseDirectory) -> crate::Result<()> {
     let Some(path) = path.to_str() else {
         return Err(Error::Utf8(path.to_path_buf()));

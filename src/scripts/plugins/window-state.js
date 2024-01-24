@@ -74,7 +74,7 @@ async function _unlisten(event, eventId) {
 async function listen(event, handler, options) {
   return invoke("plugin:event|listen", {
     event,
-    windowLabel: options?.target,
+    target: options?.target,
     handler: transformCallback(handler)
   }).then((eventId) => {
     return async () => _unlisten(event, eventId);
@@ -94,7 +94,7 @@ async function once(event, handler, options) {
 async function emit(event, payload, options) {
   await invoke("plugin:event|emit", {
     event,
-    windowLabel: options?.target,
+    target: options?.target,
     payload
   });
 }
@@ -103,14 +103,14 @@ async function emit(event, payload, options) {
 var CloseRequestedEvent = class {
   /** Event name */
   event;
-  /** The label of the window that emitted this event. */
-  windowLabel;
+  /** The source of the event. */
+  source;
   /** Event identifier used to unlisten */
   id;
   _preventDefault = false;
   constructor(event) {
     this.event = event.event;
-    this.windowLabel = event.windowLabel;
+    this.source = event.source;
     this.id = event.id;
   }
   preventDefault() {
@@ -135,7 +135,7 @@ function getAll() {
   );
 }
 var localTauriEvents = ["tauri://created", "tauri://error"];
-var Window = class _Window {
+var Window = class {
   /** The window label. It is a unique identifier for the window, can be used to reference it later. */
   label;
   /** Local event listeners. */
@@ -157,8 +157,8 @@ var Window = class _Window {
    * });
    * ```
    *
-   * @param label The unique webview window label. Must be alphanumeric: `a-zA-Z-/:_`.
-   * @returns The {@link Window} instance to communicate with the webview.
+   * @param label The unique window label. Must be alphanumeric: `a-zA-Z-/:_`.
+   * @returns The {@link Window} instance to communicate with the window.
    */
   constructor(label, options = {}) {
     this.label = label;
@@ -173,21 +173,18 @@ var Window = class _Window {
     }
   }
   /**
-   * Gets the Window for the webview associated with the given label.
+   * Gets the Window associated with the given label.
    * @example
    * ```typescript
    * import { Window } from '@tauri-apps/api/window';
    * const mainWindow = Window.getByLabel('main');
    * ```
    *
-   * @param label The webview window label.
-   * @returns The Window instance to communicate with the webview or null if the webview doesn't exist.
+   * @param label The window label.
+   * @returns The Window instance to communicate with the window or null if the window doesn't exist.
    */
   static getByLabel(label) {
-    if (getAll().some((w) => w.label === label)) {
-      return new _Window(label, { skip: true });
-    }
-    return null;
+    return getAll().find((w) => w.label === label) ?? null;
   }
   /**
    * Get an instance of `Window` for the current window.
@@ -209,7 +206,7 @@ var Window = class _Window {
    * const focusedWindow = Window.getFocusedWindow();
    * ```
    *
-   * @returns The Window instance to communicate with the webview or `undefined` if there is not any focused window.
+   * @returns The Window instance or `undefined` if there is not any focused window.
    */
   static async getFocusedWindow() {
     for (const w of getAll()) {
@@ -220,7 +217,7 @@ var Window = class _Window {
     return null;
   }
   /**
-   * Listen to an event emitted by the backend that is tied to the webview window.
+   * Listen to an event emitted by the backend that is tied to the window.
    *
    * @example
    * ```typescript
@@ -245,10 +242,12 @@ var Window = class _Window {
         listeners.splice(listeners.indexOf(handler), 1);
       });
     }
-    return listen(event, handler, { target: this.label });
+    return listen(event, handler, {
+      target: { kind: "window", label: this.label }
+    });
   }
   /**
-   * Listen to an one-off event emitted by the backend that is tied to the webview window.
+   * Listen to an one-off event emitted by the backend that is tied to the window.
    *
    * @example
    * ```typescript
@@ -273,10 +272,12 @@ var Window = class _Window {
         listeners.splice(listeners.indexOf(handler), 1);
       });
     }
-    return once(event, handler, { target: this.label });
+    return once(event, handler, {
+      target: { kind: "window", label: this.label }
+    });
   }
   /**
-   * Emits an event to the backend, tied to the webview window.
+   * Emits an event to the backend, tied to the window.
    * @example
    * ```typescript
    * import { getCurrent } from '@tauri-apps/api/window';
@@ -289,11 +290,18 @@ var Window = class _Window {
   async emit(event, payload) {
     if (localTauriEvents.includes(event)) {
       for (const handler of this.listeners[event] || []) {
-        handler({ event, id: -1, windowLabel: this.label, payload });
+        handler({
+          event,
+          id: -1,
+          source: { kind: "window", label: this.label },
+          payload
+        });
       }
       return Promise.resolve();
     }
-    return emit(event, payload, { target: this.label });
+    return emit(event, payload, {
+      target: { kind: "window", label: this.label }
+    });
   }
   /** @ignore */
   _handleTauriEvent(event, handler) {
@@ -1282,6 +1290,22 @@ var Window = class _Window {
     });
   }
   /**
+   * Starts resize-dragging the window.
+   * @example
+   * ```typescript
+   * import { getCurrent } from '@tauri-apps/api/window';
+   * await getCurrent().startResizeDragging();
+   * ```
+   *
+   * @return A promise indicating the success or failure of the operation.
+   */
+  async startResizeDragging(direction) {
+    return invoke("plugin:window|start_resize_dragging", {
+      label: this.label,
+      value: direction
+    });
+  }
+  /**
    * Sets the taskbar progress state.
    *
    * #### Platform-specific
@@ -1448,70 +1472,6 @@ var Window = class _Window {
       "tauri://scale-change" /* WINDOW_SCALE_FACTOR_CHANGED */,
       handler
     );
-  }
-  /**
-   * Listen to a file drop event.
-   * The listener is triggered when the user hovers the selected files on the window,
-   * drops the files or cancels the operation.
-   *
-   * @example
-   * ```typescript
-   * import { getCurrent } from "@tauri-apps/api/window";
-   * const unlisten = await getCurrent().onFileDropEvent((event) => {
-   *  if (event.payload.type === 'hover') {
-   *    console.log('User hovering', event.payload.paths);
-   *  } else if (event.payload.type === 'drop') {
-   *    console.log('User dropped', event.payload.paths);
-   *  } else {
-   *    console.log('File drop cancelled');
-   *  }
-   * });
-   *
-   * // you need to call unlisten if your handler goes out of scope e.g. the component is unmounted
-   * unlisten();
-   * ```
-   *
-   * @returns A promise resolving to a function to unlisten to the event.
-   * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
-   */
-  async onFileDropEvent(handler) {
-    const unlistenFileDrop = await this.listen(
-      "tauri://file-drop" /* WINDOW_FILE_DROP */,
-      (event) => {
-        handler({
-          ...event,
-          payload: {
-            type: "drop",
-            paths: event.payload.paths,
-            position: mapPhysicalPosition(event.payload.position)
-          }
-        });
-      }
-    );
-    const unlistenFileHover = await this.listen(
-      "tauri://file-drop-hover" /* WINDOW_FILE_DROP_HOVER */,
-      (event) => {
-        handler({
-          ...event,
-          payload: {
-            type: "hover",
-            paths: event.payload.paths,
-            position: mapPhysicalPosition(event.payload.position)
-          }
-        });
-      }
-    );
-    const unlistenCancel = await this.listen(
-      "tauri://file-drop-cancelled" /* WINDOW_FILE_DROP_CANCELLED */,
-      (event) => {
-        handler({ ...event, payload: { type: "cancel" } });
-      }
-    );
-    return () => {
-      unlistenFileDrop();
-      unlistenFileHover();
-      unlistenCancel();
-    };
   }
   /**
    * Listen to the system theme change.

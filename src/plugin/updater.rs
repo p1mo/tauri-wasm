@@ -40,7 +40,7 @@ pub enum UpdateStatus {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::updater::check_update;
+/// use tauri_wasm::plugin::updater::check_update;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let update = check_update().await?;
@@ -60,7 +60,7 @@ pub async fn check_update() -> crate::Result<UpdateResult> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::updater::{check_update, install_update};
+/// use tauri_wasm::plugin::updater::{check_update, install_update};
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let update = check_update().await?;
@@ -86,7 +86,7 @@ pub async fn install_update() -> crate::Result<()> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::updater::updater_events;
+/// use tauri_wasm::plugin::updater::updater_events;
 /// use web_sys::console;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -100,6 +100,7 @@ pub async fn install_update() -> crate::Result<()> {
 /// ```
 #[inline(always)]
 pub async fn updater_events() -> crate::Result<impl Stream<Item = Result<UpdateStatus, String>>> {
+
     let (tx, rx) = mpsc::unbounded::<Result<UpdateStatus, String>>();
 
     let closure = Closure::<dyn FnMut(JsValue)>::new(move |raw| {
@@ -113,13 +114,16 @@ pub async fn updater_events() -> crate::Result<impl Stream<Item = Result<UpdateS
 
         let _ = tx.unbounded_send(msg);
     });
+
     let unlisten = inner::onUpdaterEvent(&closure).await?;
+
     closure.forget();
 
     Ok(Listen {
         rx,
         unlisten: js_sys::Function::from(unlisten),
     })
+
 }
 
 mod inner {
@@ -127,13 +131,11 @@ mod inner {
 
     #[wasm_bindgen(module = "/src/scripts/plugins/updater.js")]
     extern "C" {
-        #[wasm_bindgen(catch)]
+        #[wasm_bindgen(catch, js_name = "check")]
         pub async fn checkUpdate() -> Result<JsValue, JsValue>;
         #[wasm_bindgen(catch)]
         pub async fn installUpdate() -> Result<JsValue, JsValue>;
         #[wasm_bindgen(catch)]
-        pub async fn onUpdaterEvent(
-            handler: &Closure<dyn FnMut(JsValue)>,
-        ) -> Result<JsValue, JsValue>;
+        pub async fn onUpdaterEvent(handler: &Closure<dyn FnMut(JsValue)>) -> Result<JsValue, JsValue>;
     }
 }

@@ -1,6 +1,6 @@
 //! [![](https://github.com/p1mo/tauri-wasm/blob/main/.github/banner.png)](https://github.com/p1mo/tauri-wasm)
 //! # Tauri v2 wasm bindings
-//! **Version:** 2.0.0-alpha-20
+//! **Version:** 2.0.0-alpha-14
 
 
 use wasm_bindgen::JsValue;
