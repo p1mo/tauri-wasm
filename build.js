@@ -21,7 +21,7 @@ const ESBUILD_CONF  = {
     logLevel    : "info",
     bundle      : true,
     format      : "esm",
-    platform    : "browser",
+    //platform    : "browser",
     loader      : { ".ts" : "ts" }
 };
 
@@ -30,7 +30,7 @@ try {
 
     const BUILD_START = new Date();
     
-    await tools.deleteDirs([ OUT_API, OUT_PLUGINS ]);
+    //await tools.deleteDirs([ OUT_API, OUT_PLUGINS ]);
 
     console.log("[build] API started.");
     

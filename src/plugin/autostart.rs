@@ -1,4 +1,6 @@
-
+//! Disable and enable autostart
+//!
+//!
 
 /// Returns a bool checking if autostart is enabled.
 #[inline(always)]

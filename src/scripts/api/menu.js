@@ -577,7 +577,7 @@ var Menu = class _Menu extends MenuItemBase {
   }
   /** Create a default menu. */
   static async default() {
-    return invoke("plugin:menu|default").then(
+    return invoke("plugin:menu|create_default").then(
       ([rid, id]) => new _Menu(rid, id)
     );
   }

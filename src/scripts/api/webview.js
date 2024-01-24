@@ -100,11 +100,6 @@ async function emit(event, payload, options) {
 }
 
 // tauri-v2/tooling/api/src/window.ts
-var UserAttentionType = /* @__PURE__ */ ((UserAttentionType2) => {
-  UserAttentionType2[UserAttentionType2["Critical"] = 1] = "Critical";
-  UserAttentionType2[UserAttentionType2["Informational"] = 2] = "Informational";
-  return UserAttentionType2;
-})(UserAttentionType || {});
 var CloseRequestedEvent = class {
   constructor(event) {
     this._preventDefault = false;
@@ -119,14 +114,6 @@ var CloseRequestedEvent = class {
     return this._preventDefault;
   }
 };
-var ProgressBarStatus = /* @__PURE__ */ ((ProgressBarStatus2) => {
-  ProgressBarStatus2["None"] = "none";
-  ProgressBarStatus2["Normal"] = "normal";
-  ProgressBarStatus2["Indeterminate"] = "indeterminate";
-  ProgressBarStatus2["Paused"] = "paused";
-  ProgressBarStatus2["Error"] = "error";
-  return ProgressBarStatus2;
-})(ProgressBarStatus || {});
 function getCurrent() {
   return new Window(window.__TAURI_INTERNALS__.metadata.currentWindow.label, {
     // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor
@@ -1496,83 +1483,468 @@ var Window = class {
     return this.listen("tauri://theme-changed" /* WINDOW_THEME_CHANGED */, handler);
   }
 };
-var Effect = /* @__PURE__ */ ((Effect2) => {
-  Effect2["AppearanceBased"] = "appearanceBased";
-  Effect2["Light"] = "light";
-  Effect2["Dark"] = "dark";
-  Effect2["MediumLight"] = "mediumLight";
-  Effect2["UltraDark"] = "ultraDark";
-  Effect2["Titlebar"] = "titlebar";
-  Effect2["Selection"] = "selection";
-  Effect2["Menu"] = "menu";
-  Effect2["Popover"] = "popover";
-  Effect2["Sidebar"] = "sidebar";
-  Effect2["HeaderView"] = "headerView";
-  Effect2["Sheet"] = "sheet";
-  Effect2["WindowBackground"] = "windowBackground";
-  Effect2["HudWindow"] = "hudWindow";
-  Effect2["FullScreenUI"] = "fullScreenUI";
-  Effect2["Tooltip"] = "tooltip";
-  Effect2["ContentBackground"] = "contentBackground";
-  Effect2["UnderWindowBackground"] = "underWindowBackground";
-  Effect2["UnderPageBackground"] = "underPageBackground";
-  Effect2["Mica"] = "mica";
-  Effect2["Blur"] = "blur";
-  Effect2["Acrylic"] = "acrylic";
-  Effect2["Tabbed"] = "tabbed";
-  Effect2["TabbedDark"] = "tabbedDark";
-  Effect2["TabbedLight"] = "tabbedLight";
-  return Effect2;
-})(Effect || {});
-var EffectState = /* @__PURE__ */ ((EffectState2) => {
-  EffectState2["FollowsWindowActiveState"] = "followsWindowActiveState";
-  EffectState2["Active"] = "active";
-  EffectState2["Inactive"] = "inactive";
-  return EffectState2;
-})(EffectState || {});
-function mapMonitor(m) {
-  return m === null ? null : {
-    name: m.name,
-    scaleFactor: m.scaleFactor,
-    position: mapPhysicalPosition(m.position),
-    size: mapPhysicalSize(m.size)
-  };
-}
 function mapPhysicalPosition(m) {
   return new PhysicalPosition(m.x, m.y);
 }
 function mapPhysicalSize(m) {
   return new PhysicalSize(m.width, m.height);
 }
-async function currentMonitor() {
-  return invoke("plugin:window|current_monitor").then(
-    mapMonitor
+
+// tauri-v2/tooling/api/src/webview.ts
+function getCurrent2() {
+  return new Webview(
+    getCurrent(),
+    window.__TAURI_INTERNALS__.metadata.currentWebview.label,
+    {
+      // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor
+      skip: true
+    }
   );
 }
-async function primaryMonitor() {
-  return invoke("plugin:window|primary_monitor").then(
-    mapMonitor
+function getAll2() {
+  return window.__TAURI_INTERNALS__.metadata.webviews.map(
+    (w) => (
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      new Webview(Window.getByLabel(w.windowLabel), w.label, {
+        // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor
+        skip: true
+      })
+    )
   );
 }
-async function availableMonitors() {
-  return invoke("plugin:window|available_monitors").then(
-    (ms) => ms.map(mapMonitor)
-  );
+var localTauriEvents2 = ["tauri://created", "tauri://error"];
+var Webview = class {
+  /**
+   * Creates a new Webview.
+   * @example
+   * ```typescript
+   * import { Window } from '@tauri-apps/api/window'
+   * import { Webview } from '@tauri-apps/api/webview'
+   * const appWindow = new Window('my-label')
+   * const webview = new Window(appWindow, 'my-label', {
+   *   url: 'https://github.com/tauri-apps/tauri'
+   * });
+   * webview.once('tauri://created', function () {
+   *  // webview successfully created
+   * });
+   * webview.once('tauri://error', function (e) {
+   *  // an error happened creating the webview
+   * });
+   * ```
+   *
+   * @param window the window to add this webview to.
+   * @param label The unique webview label. Must be alphanumeric: `a-zA-Z-/:_`.
+   * @returns The {@link Webview} instance to communicate with the webview.
+   */
+  constructor(window2, label, options) {
+    this.window = window2;
+    this.label = label;
+    this.listeners = /* @__PURE__ */ Object.create(null);
+    if (!options?.skip) {
+      invoke("plugin:webview|create_webview", {
+        windowLabel: window2.label,
+        label,
+        options
+      }).then(async () => this.emit("tauri://created")).catch(async (e) => this.emit("tauri://error", e));
+    }
+  }
+  /**
+   * Gets the Webview for the webview associated with the given label.
+   * @example
+   * ```typescript
+   * import { Webview } from '@tauri-apps/api/webview';
+   * const mainWebview = Webview.getByLabel('main');
+   * ```
+   *
+   * @param label The webview label.
+   * @returns The Webview instance to communicate with the webview or null if the webview doesn't exist.
+   */
+  static getByLabel(label) {
+    return getAll2().find((w) => w.label === label) ?? null;
+  }
+  /**
+   * Get an instance of `Webview` for the current webview.
+   */
+  static getCurrent() {
+    return getCurrent2();
+  }
+  /**
+   * Gets a list of instances of `Webview` for all available webviews.
+   */
+  static getAll() {
+    return getAll2();
+  }
+  /**
+   * Listen to an event emitted by the backend that is tied to the webview.
+   *
+   * @example
+   * ```typescript
+   * import { getCurrent } from '@tauri-apps/api/webview';
+   * const unlisten = await getCurrent().listen<string>('state-changed', (event) => {
+   *   console.log(`Got error: ${payload}`);
+   * });
+   *
+   * // you need to call unlisten if your handler goes out of scope e.g. the component is unmounted
+   * unlisten();
+   * ```
+   *
+   * @param event Event name. Must include only alphanumeric characters, `-`, `/`, `:` and `_`.
+   * @param handler Event handler.
+   * @returns A promise resolving to a function to unlisten to the event.
+   * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
+   */
+  async listen(event, handler) {
+    if (this._handleTauriEvent(event, handler)) {
+      return Promise.resolve(() => {
+        const listeners = this.listeners[event];
+        listeners.splice(listeners.indexOf(handler), 1);
+      });
+    }
+    return listen(event, handler, {
+      target: { kind: "webview", label: this.label }
+    });
+  }
+  /**
+   * Listen to an one-off event emitted by the backend that is tied to the webview.
+   *
+   * @example
+   * ```typescript
+   * import { getCurrent } from '@tauri-apps/api/webview';
+   * const unlisten = await getCurrent().once<null>('initialized', (event) => {
+   *   console.log(`Webview initialized!`);
+   * });
+   *
+   * // you need to call unlisten if your handler goes out of scope e.g. the component is unmounted
+   * unlisten();
+   * ```
+   *
+   * @param event Event name. Must include only alphanumeric characters, `-`, `/`, `:` and `_`.
+   * @param handler Event handler.
+   * @returns A promise resolving to a function to unlisten to the event.
+   * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
+   */
+  async once(event, handler) {
+    if (this._handleTauriEvent(event, handler)) {
+      return Promise.resolve(() => {
+        const listeners = this.listeners[event];
+        listeners.splice(listeners.indexOf(handler), 1);
+      });
+    }
+    return once(event, handler, {
+      target: { kind: "webview", label: this.label }
+    });
+  }
+  /**
+   * Emits an event to the backend, tied to the webview.
+   * @example
+   * ```typescript
+   * import { getCurrent } from '@tauri-apps/api/webview';
+   * await getCurrent().emit('webview-loaded', { loggedIn: true, token: 'authToken' });
+   * ```
+   *
+   * @param event Event name. Must include only alphanumeric characters, `-`, `/`, `:` and `_`.
+   * @param payload Event payload.
+   */
+  async emit(event, payload) {
+    if (localTauriEvents2.includes(event)) {
+      for (const handler of this.listeners[event] || []) {
+        handler({
+          event,
+          id: -1,
+          source: { kind: "webview", label: this.label },
+          payload
+        });
+      }
+      return Promise.resolve();
+    }
+    return emit(event, payload, {
+      target: { kind: "webview", label: this.label }
+    });
+  }
+  /** @ignore */
+  _handleTauriEvent(event, handler) {
+    if (localTauriEvents2.includes(event)) {
+      if (!(event in this.listeners)) {
+        this.listeners[event] = [handler];
+      } else {
+        this.listeners[event].push(handler);
+      }
+      return true;
+    }
+    return false;
+  }
+  // Getters
+  /**
+   * The position of the top-left hand corner of the webview's client area relative to the top-left hand corner of the desktop.
+   * @example
+   * ```typescript
+   * import { getCurrent } from '@tauri-apps/api/webview';
+   * const position = await getCurrent().position();
+   * ```
+   *
+   * @returns The webview's position.
+   */
+  async position() {
+    return invoke("plugin:webview|webview_position", {
+      label: this.label
+    }).then(({ x, y }) => new PhysicalPosition(x, y));
+  }
+  /**
+   * The physical size of the webview's client area.
+   * The client area is the content of the webview, excluding the title bar and borders.
+   * @example
+   * ```typescript
+   * import { getCurrent } from '@tauri-apps/api/webview';
+   * const size = await getCurrent().size();
+   * ```
+   *
+   * @returns The webview's size.
+   */
+  async size() {
+    return invoke(
+      "plugin:webview|webview_size",
+      {
+        label: this.label
+      }
+    ).then(({ width, height }) => new PhysicalSize(width, height));
+  }
+  // Setters
+  /**
+   * Closes the webview.
+   * @example
+   * ```typescript
+   * import { getCurrent } from '@tauri-apps/api/webview';
+   * await getCurrent().close();
+   * ```
+   *
+   * @returns A promise indicating the success or failure of the operation.
+   */
+  async close() {
+    return invoke("plugin:webview|close", {
+      label: this.label
+    });
+  }
+  /**
+   * Resizes the webview.
+   * @example
+   * ```typescript
+   * import { getCurrent, LogicalSize } from '@tauri-apps/api/webview';
+   * await getCurrent().setSize(new LogicalSize(600, 500));
+   * ```
+   *
+   * @param size The logical or physical size.
+   * @returns A promise indicating the success or failure of the operation.
+   */
+  async setSize(size) {
+    if (!size || size.type !== "Logical" && size.type !== "Physical") {
+      throw new Error(
+        "the `size` argument must be either a LogicalSize or a PhysicalSize instance"
+      );
+    }
+    return invoke("plugin:webview|set_webview_size", {
+      label: this.label,
+      value: {
+        type: size.type,
+        data: {
+          width: size.width,
+          height: size.height
+        }
+      }
+    });
+  }
+  /**
+   * Sets the webview position.
+   * @example
+   * ```typescript
+   * import { getCurrent, LogicalPosition } from '@tauri-apps/api/webview';
+   * await getCurrent().setPosition(new LogicalPosition(600, 500));
+   * ```
+   *
+   * @param position The new position, in logical or physical pixels.
+   * @returns A promise indicating the success or failure of the operation.
+   */
+  async setPosition(position) {
+    if (!position || position.type !== "Logical" && position.type !== "Physical") {
+      throw new Error(
+        "the `position` argument must be either a LogicalPosition or a PhysicalPosition instance"
+      );
+    }
+    return invoke("plugin:webview|set_webview_position", {
+      label: this.label,
+      value: {
+        type: position.type,
+        data: {
+          x: position.x,
+          y: position.y
+        }
+      }
+    });
+  }
+  /**
+   * Bring the webview to front and focus.
+   * @example
+   * ```typescript
+   * import { getCurrent } from '@tauri-apps/api/webview';
+   * await getCurrent().setFocus();
+   * ```
+   *
+   * @returns A promise indicating the success or failure of the operation.
+   */
+  async setFocus() {
+    return invoke("plugin:webview|set_webview_focus", {
+      label: this.label
+    });
+  }
+  // Listeners
+  /**
+   * Listen to a file drop event.
+   * The listener is triggered when the user hovers the selected files on the webview,
+   * drops the files or cancels the operation.
+   *
+   * @example
+   * ```typescript
+   * import { getCurrent } from "@tauri-apps/api/webview";
+   * const unlisten = await getCurrent().onFileDropEvent((event) => {
+   *  if (event.payload.type === 'hover') {
+   *    console.log('User hovering', event.payload.paths);
+   *  } else if (event.payload.type === 'drop') {
+   *    console.log('User dropped', event.payload.paths);
+   *  } else {
+   *    console.log('File drop cancelled');
+   *  }
+   * });
+   *
+   * // you need to call unlisten if your handler goes out of scope e.g. the component is unmounted
+   * unlisten();
+   * ```
+   *
+   * @returns A promise resolving to a function to unlisten to the event.
+   * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
+   */
+  async onFileDropEvent(handler) {
+    const unlistenFileDrop = await this.listen(
+      "tauri://file-drop" /* WEBVIEW_FILE_DROP */,
+      (event) => {
+        handler({
+          ...event,
+          payload: {
+            type: "drop",
+            paths: event.payload.paths,
+            position: mapPhysicalPosition2(event.payload.position)
+          }
+        });
+      }
+    );
+    const unlistenFileHover = await this.listen(
+      "tauri://file-drop-hover" /* WEBVIEW_FILE_DROP_HOVER */,
+      (event) => {
+        handler({
+          ...event,
+          payload: {
+            type: "hover",
+            paths: event.payload.paths,
+            position: mapPhysicalPosition2(event.payload.position)
+          }
+        });
+      }
+    );
+    const unlistenCancel = await this.listen(
+      "tauri://file-drop-cancelled" /* WEBVIEW_FILE_DROP_CANCELLED */,
+      (event) => {
+        handler({ ...event, payload: { type: "cancel" } });
+      }
+    );
+    return () => {
+      unlistenFileDrop();
+      unlistenFileHover();
+      unlistenCancel();
+    };
+  }
+};
+function mapPhysicalPosition2(m) {
+  return new PhysicalPosition(m.x, m.y);
+}
+var WebviewWindow = class _WebviewWindow {
+  /**
+   * Creates a new {@link Window} hosting a {@link Webview}.
+   * @example
+   * ```typescript
+   * import { WebviewWindow } from '@tauri-apps/api/webview'
+   * const webview = new WebviewWindow('my-label', {
+   *   url: 'https://github.com/tauri-apps/tauri'
+   * });
+   * webview.once('tauri://created', function () {
+   *  // webview successfully created
+   * });
+   * webview.once('tauri://error', function (e) {
+   *  // an error happened creating the webview
+   * });
+   * ```
+   *
+   * @param label The unique webview label. Must be alphanumeric: `a-zA-Z-/:_`.
+   * @returns The {@link WebviewWindow} instance to communicate with the window and webview.
+   */
+  constructor(label, options = {}) {
+    this.label = label;
+    this.listeners = /* @__PURE__ */ Object.create(null);
+    if (!options?.skip) {
+      invoke("plugin:webview|create_webview_window", {
+        options: {
+          ...options,
+          label
+        }
+      }).then(async () => this.emit("tauri://created")).catch(async (e) => this.emit("tauri://error", e));
+    }
+  }
+  /**
+   * Gets the Webview for the webview associated with the given label.
+   * @example
+   * ```typescript
+   * import { Webview } from '@tauri-apps/api/webview';
+   * const mainWebview = Webview.getByLabel('main');
+   * ```
+   *
+   * @param label The webview label.
+   * @returns The Webview instance to communicate with the webview or null if the webview doesn't exist.
+   */
+  static getByLabel(label) {
+    const webview = getAll2().find((w) => w.label === label) ?? null;
+    if (webview) {
+      return new _WebviewWindow(webview.label, { skip: true });
+    }
+    return null;
+  }
+  /**
+   * Get an instance of `Webview` for the current webview.
+   */
+  static getCurrent() {
+    const webview = getCurrent2();
+    return new _WebviewWindow(webview.label, { skip: true });
+  }
+  /**
+   * Gets a list of instances of `Webview` for all available webviews.
+   */
+  static getAll() {
+    return getAll2().map((w) => new _WebviewWindow(w.label, { skip: true }));
+  }
+};
+applyMixins(WebviewWindow, [Webview, Window]);
+function applyMixins(baseClass, extendedClasses) {
+  ;
+  (Array.isArray(extendedClasses) ? extendedClasses : [extendedClasses]).forEach((extendedClass) => {
+    Object.getOwnPropertyNames(extendedClass.prototype).forEach((name) => {
+      Object.defineProperty(
+        baseClass.prototype,
+        name,
+        // eslint-disable-next-line
+        Object.getOwnPropertyDescriptor(extendedClass.prototype, name) ?? /* @__PURE__ */ Object.create(null)
+      );
+    });
+  });
 }
 export {
-  CloseRequestedEvent,
-  Effect,
-  EffectState,
-  LogicalPosition,
-  LogicalSize,
-  PhysicalPosition,
-  PhysicalSize,
-  ProgressBarStatus,
-  UserAttentionType,
-  Window,
-  availableMonitors,
-  currentMonitor,
-  getAll,
-  getCurrent,
-  primaryMonitor
+  Webview,
+  WebviewWindow,
+  getAll2 as getAll,
+  getCurrent2 as getCurrent
 };

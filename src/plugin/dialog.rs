@@ -1,23 +1,5 @@
 //! Native system dialogs for opening and saving files.
 //!
-//! The APIs must be added to `tauri.allowlist.dialog` in `tauri.conf.json`:
-//! ```json
-//! {
-//!     "tauri": {
-//!         "allowlist": {
-//!             "dialog": {
-//!                 "all": true, // enable all dialog APIs
-//!                 "open": true, // enable file open API
-//!                 "save": true // enable file save API
-//!                 "message": true,
-//!                 "ask": true,
-//!                 "confirm": true
-//!             }
-//!         }
-//!     }
-//! }
-//! ```
-//! It is recommended to allowlist only the APIs you use for optimal bundle size and security.
 
 use js_sys::Array;
 use serde::Serialize;
@@ -62,7 +44,7 @@ impl<'a> FileDialogBuilder<'a> {
     /// # Example
     ///
     /// ```rust
-    /// use tauri_sys::dialog::FileDialogBuilder;
+    /// use tauri_wasm::plugin::dialog::FileDialogBuilder;
     ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let _builder = FileDialogBuilder::new().set_recursive(true);
@@ -79,7 +61,7 @@ impl<'a> FileDialogBuilder<'a> {
     /// # Example
     ///
     /// ```rust
-    /// use tauri_sys::dialog::FileDialogBuilder;
+    /// use tauri_wasm::plugin::dialog::FileDialogBuilder;
     ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let _builder = FileDialogBuilder::new().set_title("Test Title");
@@ -96,7 +78,7 @@ impl<'a> FileDialogBuilder<'a> {
     /// # Example
     ///
     /// ```rust
-    /// use tauri_sys::dialog::FileDialogBuilder;
+    /// use tauri_wasm::plugin::dialog::FileDialogBuilder;
     ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let _builder = FileDialogBuilder::new().add_filter("Image", &["png", "jpeg"]);
@@ -113,7 +95,7 @@ impl<'a> FileDialogBuilder<'a> {
     /// # Example
     ///
     /// ```rust
-    /// use tauri_sys::dialog::FileDialogBuilder;
+    /// use tauri_wasm::plugin::dialog::FileDialogBuilder;
     ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let _builder = FileDialogBuilder::new().add_filters(&[("Image", &["png", "jpeg"]),("Video", &["mp4"])]);
@@ -138,7 +120,7 @@ impl<'a> FileDialogBuilder<'a> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use tauri_sys::dialog::FileDialogBuilder;
+    /// use tauri_wasm::plugin::dialog::FileDialogBuilder;
     ///
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let file = FileDialogBuilder::new().pick_file().await?;
@@ -146,7 +128,6 @@ impl<'a> FileDialogBuilder<'a> {
     /// # }
     /// ```
     ///
-    /// Requires [`allowlist > dialog > open`](https://tauri.app/v1/api/config#dialogallowlistconfig.open) to be enabled.
     pub async fn pick_file(&self) -> crate::Result<Option<PathBuf>> {
         let raw = inner::open(serde_wasm_bindgen::to_value(&self)?).await?;
 
@@ -158,7 +139,7 @@ impl<'a> FileDialogBuilder<'a> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use tauri_sys::dialog::FileDialogBuilder;
+    /// use tauri_wasm::plugin::dialog::FileDialogBuilder;
     ///
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let files = FileDialogBuilder::new().pick_files().await?;
@@ -166,7 +147,6 @@ impl<'a> FileDialogBuilder<'a> {
     /// # }
     /// ```
     ///
-    /// Requires [`allowlist > dialog > open`](https://tauri.app/v1/api/config#dialogallowlistconfig.open) to be enabled.
     pub async fn pick_files(&mut self) -> crate::Result<Option<impl Iterator<Item = PathBuf>>> {
         self.multiple = true;
 
@@ -187,7 +167,7 @@ impl<'a> FileDialogBuilder<'a> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use tauri_sys::dialog::FileDialogBuilder;
+    /// use tauri_wasm::plugin::dialog::FileDialogBuilder;
     ///
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let files = FileDialogBuilder::new().pick_folder().await?;
@@ -195,7 +175,6 @@ impl<'a> FileDialogBuilder<'a> {
     /// # }
     /// ```
     ///
-    /// Requires [`allowlist > dialog > open`](https://tauri.app/v1/api/config#dialogallowlistconfig.open) to be enabled.
     pub async fn pick_folder(&mut self) -> crate::Result<Option<PathBuf>> {
         self.directory = true;
 
@@ -209,7 +188,7 @@ impl<'a> FileDialogBuilder<'a> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use tauri_sys::dialog::FileDialogBuilder;
+    /// use tauri_wasm::plugin::dialog::FileDialogBuilder;
     ///
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let files = FileDialogBuilder::new().pick_folders().await?;
@@ -217,7 +196,6 @@ impl<'a> FileDialogBuilder<'a> {
     /// # }
     /// ```
     ///
-    /// Requires [`allowlist > dialog > open`](https://tauri.app/v1/api/config#dialogallowlistconfig.open) to be enabled.
     pub async fn pick_folders(&mut self) -> crate::Result<Option<impl Iterator<Item = PathBuf>>> {
         self.directory = true;
         self.multiple = true;
@@ -245,7 +223,7 @@ impl<'a> FileDialogBuilder<'a> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use tauri_sys::dialog::FileDialogBuilder;
+    /// use tauri_wasm::plugin::dialog::FileDialogBuilder;
     ///
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let file = FileDialogBuilder::new().save().await?;
@@ -253,7 +231,6 @@ impl<'a> FileDialogBuilder<'a> {
     /// # }
     /// ```
     ///
-    /// Requires [`allowlist > dialog > save`](https://tauri.app/v1/api/config#dialogallowlistconfig.save) to be enabled.
     pub async fn save(&self) -> crate::Result<Option<PathBuf>> {
         let raw = inner::save(serde_wasm_bindgen::to_value(&self)?).await?;
 
@@ -291,7 +268,7 @@ impl<'a> MessageDialogBuilder<'a> {
     /// # Example
     ///
     /// ```rust
-    /// use tauri_sys::dialog::MessageDialogBuilder;
+    /// use tauri_wasm::plugin::dialog::MessageDialogBuilder;
     ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let _builder = MessageDialogBuilder::new().set_title("Test Title");
@@ -308,7 +285,7 @@ impl<'a> MessageDialogBuilder<'a> {
     /// # Example
     ///
     /// ```rust
-    /// use tauri_sys::dialog::{MessageDialogBuilder,MessageDialogKind};
+    /// use tauri_wasm::plugin::dialog::{MessageDialogBuilder,MessageDialogKind};
     ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let _builder = MessageDialogBuilder::new().set_kind(MessageDialogKind::Error);
@@ -325,7 +302,7 @@ impl<'a> MessageDialogBuilder<'a> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use tauri_sys::dialog::MessageDialogBuilder;
+    /// use tauri_wasm::plugin::dialog::MessageDialogBuilder;
     ///
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let file = MessageDialogBuilder::new().message("Tauri is awesome").await?;
@@ -333,7 +310,6 @@ impl<'a> MessageDialogBuilder<'a> {
     /// # }
     /// ```
     ///
-    /// Requires [`allowlist > dialog > message`](https://tauri.app/v1/api/config#dialogallowlistconfig.message) to be enabled.
     pub async fn message(&self, message: &str) -> crate::Result<()> {
         Ok(inner::message(message, serde_wasm_bindgen::to_value(&self)?).await?)
     }
@@ -343,7 +319,7 @@ impl<'a> MessageDialogBuilder<'a> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use tauri_sys::dialog::MessageDialogBuilder;
+    /// use tauri_wasm::plugin::dialog::MessageDialogBuilder;
     ///
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let confirmation = MessageDialogBuilder::new().ask("Are you sure?").await?;
@@ -351,7 +327,6 @@ impl<'a> MessageDialogBuilder<'a> {
     /// # }
     /// ```
     ///
-    /// Requires [`allowlist > dialog > ask`](https://tauri.app/v1/api/config#dialogallowlistconfig.ask) to be enabled.
     pub async fn ask(&self, message: &str) -> crate::Result<bool> {
         let raw = inner::ask(message, serde_wasm_bindgen::to_value(&self)?).await?;
 
@@ -363,7 +338,7 @@ impl<'a> MessageDialogBuilder<'a> {
     /// # Example
     ///
     /// ```rust,no_run
-    /// use tauri_sys::dialog::MessageDialogBuilder;
+    /// use tauri_wasm::plugin::dialog::MessageDialogBuilder;
     ///
     /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let confirmation = MessageDialogBuilder::new().confirm("Are you sure?").await?;
@@ -371,7 +346,6 @@ impl<'a> MessageDialogBuilder<'a> {
     /// # }
     /// ```
     ///
-    /// Requires [`allowlist > dialog > confirm`](https://tauri.app/v1/api/config#dialogallowlistconfig.confirm) to be enabled.
     pub async fn confirm(&self, message: &str) -> crate::Result<bool> {
         let raw = inner::confirm(message, serde_wasm_bindgen::to_value(&self)?).await?;
 
