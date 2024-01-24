@@ -38,10 +38,10 @@ jobs:
             components: rustfmt, rust-src
 
         - name: Build Documentation
-            uses: actions-rs/cargo@v1
-            with:
-              command: doc
-              args: -p tauri-wasm --all-features --no-deps
+          uses: actions-rs/cargo@v1
+          with:
+            command: doc
+            args: -p tauri-wasm --all-features --no-deps
                 
         - name: Create index.html
           run: echo '<meta http-equiv="refresh" content="0; url=tauri_wasm">' > ./target/doc/index.html
