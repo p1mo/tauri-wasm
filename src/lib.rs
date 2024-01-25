@@ -37,6 +37,9 @@ pub mod api {
     /// # Tray bindings
     #[cfg(feature = "tray")]
     pub mod tray;
+    /// # Webview bindings
+    #[cfg(feature = "webview")]
+    pub mod webview;
     /// # Window bindings
     #[cfg(feature = "window")]
     pub mod window;

@@ -5,10 +5,10 @@ use url::Url;
 
 /// Convert a device file path to an URL that can be loaded by the webview.
 ///
-/// Note that `asset:` and `https://asset.localhost` must be added to [`tauri.security.csp`](https://tauri.app/v1/api/config/#securityconfig.csp) in `tauri.conf.json`.
+/// Note that `asset:` and `https://asset.localhost` must be added to [`tauri.security.csp`](https://beta.tauri.app/references/v2/config/#csp-1) in `tauri.conf.json`.
 /// Example CSP value: `"csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost"` to use the asset protocol on image sources.
 ///
-/// Additionally, `asset` must be added to [`tauri.allowlist.protocol`](https://tauri.app/v1/api/config/#allowlistconfig.protocol)
+/// Additionally, `asset` must be added to [`tauri.allowlist.protocol`](https://beta.tauri.app/references/v2/config/#assetprotocol)
 /// in `tauri.conf.json` and its access scope must be defined on the `assetScope` array on the same `protocol` object.
 ///
 /// @param  filePath The file path.
@@ -17,8 +17,8 @@ use url::Url;
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_api::path::{app_data_dir, join};
-/// use tauri_api::tauri::convert_file_src;
+/// use tauri_wasm::api::path::{app_data_dir, join};
+/// use tauri_wasm::api::core::convert_file_src;
 ///
 /// const app_data_dir_path = app_data_dir().await;
 /// const file_path = join(app_data_dir_path, "assets/video.mp4").await;
@@ -50,7 +50,7 @@ pub async fn convert_file_src(file_path: &str, protocol: Option<&str>) -> crate:
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_api::tauri::invoke;
+/// use tauri_wasm::api::core::invoke;
 ///
 /// struct User<'a> {
 ///     user: &'a str,

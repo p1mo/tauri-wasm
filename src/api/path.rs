@@ -1,30 +1,17 @@
 //! The path module provides utilities for working with file and directory paths.
 //! 
-//! The APIs must be added to tauri.allowlist.path in tauri.conf.json:
-//! ```json
-//! {
-//!     "tauri": {
-//!         "allowlist": {
-//!             "path": {
-//!                 "all": true, // enable all Path APIs
-//!             }
-//!         }
-//!     }
-//! }
-//! ```
-//! It is recommended to allowlist only the APIs you use for optimal bundle size and security.
 
 use std::path::PathBuf;
 use wasm_bindgen::JsValue;
 
 /// Returns the path to the suggested directory for your app's config files.
 ///
-/// Resolves to `${configDir}/${bundleIdentifier}`, where `bundleIdentifier` is the value [`tauri.bundle.identifier`](https://tauri.app/v1/api/config/#bundleconfig.identifier) is configured in `tauri.conf.json`.
+/// Resolves to `${configDir}/${bundleIdentifier}`, where `bundleIdentifier` is the value [`tauri.bundle.identifier`](https://beta.tauri.app/references/v2/config/#identifier) is configured in `tauri.conf.json`.
 ///
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::app_config_dir;
+/// use tauri_wasm::api::path::app_config_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let app_config_dir_path = app_config_dir().await?;
@@ -40,12 +27,12 @@ pub async fn app_config_dir() -> crate::Result<PathBuf> {
 
 /// Returns the path to the suggested directory for your app's data files.
 ///
-/// Resolves to `${dataDir}/${bundleIdentifier}`, where `bundleIdentifier` is the value [`tauri.bundle.identifier`](https://tauri.app/v1/api/config/#bundleconfig.identifier) is configured in `tauri.conf.json`.
+/// Resolves to `${dataDir}/${bundleIdentifier}`, where `bundleIdentifier` is the value [`tauri.bundle.identifier`](https://beta.tauri.app/references/v2/config/#identifier) is configured in `tauri.conf.json`.
 ///
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::app_data_dir;
+/// use tauri_wasm::api::path::app_data_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let app_data_dir_path = app_data_dir().await?;
@@ -61,12 +48,12 @@ pub async fn app_data_dir() -> crate::Result<PathBuf> {
 
 /// Returns the path to the suggested directory for your app's local data files.
 ///
-/// Resolves to `${localDataDir}/${bundleIdentifier}`, where `bundleIdentifier` is the value [`tauri.bundle.identifier`](https://tauri.app/v1/api/config/#bundleconfig.identifier) is configured in `tauri.conf.json`.
+/// Resolves to `${localDataDir}/${bundleIdentifier}`, where `bundleIdentifier` is the value [`tauri.bundle.identifier`](https://beta.tauri.app/references/v2/config/#identifier) is configured in `tauri.conf.json`.
 ///
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::app_local_data_dir;
+/// use tauri_wasm::api::path::app_local_data_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let app_local_data_dir_path = app_local_data_dir().await?;
@@ -82,12 +69,12 @@ pub async fn app_local_data_dir() -> crate::Result<PathBuf> {
 
 /// Returns the path to the suggested directory for your app's cache files.
 ///
-/// Resolves to `${cacheDir}/${bundleIdentifier}`, where `bundleIdentifier` is the value [`tauri.bundle.identifier`](https://tauri.app/v1/api/config/#bundleconfig.identifier) is configured in `tauri.conf.json`.
+/// Resolves to `${cacheDir}/${bundleIdentifier}`, where `bundleIdentifier` is the value [`tauri.bundle.identifier`](https://beta.tauri.app/references/v2/config/#identifier) is configured in `tauri.conf.json`.
 ///
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::app_cache_dir;
+/// use tauri_wasm::api::path::app_cache_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let app_cache_dir_path = app_cache_dir().await?;
@@ -112,7 +99,7 @@ pub async fn app_cache_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::audio_dir;
+/// use tauri_wasm::api::path::audio_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let audio_dir_path = audio_dir().await?;
@@ -137,7 +124,7 @@ pub async fn audio_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::cache_dir;
+/// use tauri_wasm::api::path::cache_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let cache_dir_path = cache_dir().await?;
@@ -162,7 +149,7 @@ pub async fn cache_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::config_dir;
+/// use tauri_wasm::api::path::config_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let config_dir_path = config_dir().await?;
@@ -187,7 +174,7 @@ pub async fn config_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::data_dir;
+/// use tauri_wasm::api::path::data_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let data_dir_path = data_dir().await?;
@@ -212,7 +199,7 @@ pub async fn data_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::desktop_dir;
+/// use tauri_wasm::api::path::desktop_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let desktop_dir_path = desktop_dir().await?;
@@ -237,7 +224,7 @@ pub async fn desktop_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::document_dir;
+/// use tauri_wasm::api::path::document_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let document_dir_path = document_dir().await?;
@@ -262,7 +249,7 @@ pub async fn document_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::download_dir;
+/// use tauri_wasm::api::path::download_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let download_dir_path = download_dir().await?;
@@ -287,7 +274,7 @@ pub async fn download_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::executable_dir;
+/// use tauri_wasm::api::path::executable_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let executable_dir_path = executable_dir().await?;
@@ -312,7 +299,7 @@ pub async fn executable_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::font_dir;
+/// use tauri_wasm::api::path::font_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let font_dir_path = font_dir().await?;
@@ -337,7 +324,7 @@ pub async fn font_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::home_dir;
+/// use tauri_wasm::api::path::home_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let home_dir_path = home_dir().await?;
@@ -362,7 +349,7 @@ pub async fn home_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::local_data_dir;
+/// use tauri_wasm::api::path::local_data_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let local_data_dir_path = local_data_dir().await?;
@@ -387,7 +374,7 @@ pub async fn local_data_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::picture_dir;
+/// use tauri_wasm::api::path::picture_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let picture_dir_path = picture_dir().await?;
@@ -412,7 +399,7 @@ pub async fn picture_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::public_dir;
+/// use tauri_wasm::api::path::public_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let public_dir_path = public_dir().await?;
@@ -433,7 +420,7 @@ pub async fn public_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::resource_dir;
+/// use tauri_wasm::api::path::resource_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let resource_dir_path = resource_dir().await?;
@@ -454,7 +441,7 @@ pub async fn resource_dir() -> crate::Result<PathBuf> {
 /// @returns The full path to the resource.
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::resolve_resource;
+/// use tauri_wasm::api::path::resolve_resource;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let resource_path = resolve_resource("script.sh").await?;
@@ -479,7 +466,7 @@ pub async fn resolve_resource(resource_path: &str) -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::runtime_dir;
+/// use tauri_wasm::api::path::runtime_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let runtime_dir_path = runtime_dir().await?;
@@ -504,7 +491,7 @@ pub async fn runtime_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::template_dir;
+/// use tauri_wasm::api::path::template_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let template_dir_path = template_dir().await?;
@@ -529,7 +516,7 @@ pub async fn template_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::video_dir;
+/// use tauri_wasm::api::path::video_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let video_dir_path = video_dir().await?;
@@ -554,7 +541,7 @@ pub async fn video_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::app_log_dir;
+/// use tauri_wasm::api::path::app_log_dir;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let app_log_dir_path = app_log_dir().await?;
@@ -573,7 +560,7 @@ pub async fn app_log_dir() -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::{resolve, app_data_dir};
+/// use tauri_wasm::api::path::{resolve, app_data_dir};
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let app_data_dir_path = app_data_dir().await?;
@@ -595,7 +582,7 @@ pub async fn resolve(paths: impl IntoIterator<Item = &str>) -> crate::Result<Pat
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::{normalize, app_data_dir};
+/// use tauri_wasm::api::path::{normalize, app_data_dir};
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let app_data_dir_path = app_data_dir().await?;
@@ -616,7 +603,7 @@ pub async fn normalize(path: &str) -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::{join, app_data_dir};
+/// use tauri_wasm::api::path::{join, app_data_dir};
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let app_data_dir_path = app_data_dir().await?;
@@ -638,7 +625,7 @@ pub async fn join(paths: impl IntoIterator<Item = &str>) -> crate::Result<PathBu
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::{dirname, app_data_dir};
+/// use tauri_wasm::api::path::{dirname, app_data_dir};
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let app_data_dir_path = app_data_dir().await?;
@@ -659,7 +646,7 @@ pub async fn dirname(path: &str) -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::{extname, resolve_resource};
+/// use tauri_wasm::api::path::{extname, resolve_resource};
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let resource_path = await resolve_resource("app.conf").await?;
@@ -682,7 +669,7 @@ pub async fn extname(path: &str) -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::{basename, resolve_resource};
+/// use tauri_wasm::api::path::{basename, resolve_resource};
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let resource_path = await resolve_resource("app.conf").await?;
@@ -707,7 +694,7 @@ pub async fn basename(path: &str, ext: Option<&str>) -> crate::Result<PathBuf> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_sys::path::is_absolute;
+/// use tauri_wasm::api::path::is_absolute;
 ///
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// assert!(is_absolute("/home/tauri").await?);

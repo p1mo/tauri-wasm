@@ -24,20 +24,6 @@
 //! # }
 //! ```
 //!
-//! The APIs must be added to tauri.allowlist.globalShortcut in tauri.conf.json:
-//!
-//! ```json
-//! {
-//!     "tauri": {
-//!         "allowlist": {
-//!             "globalShortcut": {
-//!                 "all": true // enable all global shortcut APIs
-//!             }
-//!         }
-//!     }
-//! }
-//! ```
-//! It is recommended to allowlist only the APIs you use for optimal bundle size and security.
 
 use crate::js::console;
 use futures::{channel::mpsc, Stream, StreamExt};
@@ -64,7 +50,6 @@ pub async fn is_registered(shortcut: &str) -> crate::Result<bool> {
 /// Register a global shortcut.
 ///
 /// The returned Future will automatically clean up it's underlying event listener when dropped, so no manual unlisten function needs to be called.
-/// See [Differences to the JavaScript API](../index.html#differences-to-the-javascript-api) for details.
 ///
 /// # Examples
 ///
