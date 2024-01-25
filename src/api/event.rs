@@ -26,7 +26,7 @@ pub struct Event<T> {
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_api::event::emit;
+/// use tauri_wasm::api::event::emit;
 /// use serde::Serialize;
 ///
 /// #[derive(Serialize)]
@@ -49,12 +49,11 @@ pub async fn emit<T: Serialize>(event: &str, payload: &T) -> crate::Result<()> {
 /// Listen to an event from the backend.
 /// 
 /// The returned Future will automatically clean up it's underlying event listener when dropped, so no manual unlisten function needs to be called.
-/// See [Differences to the JavaScript API](../index.html#differences-to-the-javascript-api) for details.
 ///
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_api::event::listen;
+/// use tauri_wasm::api::event::listen;
 /// use web_sys::console;
 ///
 /// let events = listen::<String>("error");
@@ -108,12 +107,11 @@ impl<T> Stream for Listen<T> {
 /// Listen to an one-off event from the backend.
 ///
 /// The returned Future will automatically clean up it's underlying event listener when dropped, so no manual unlisten function needs to be called.
-/// See [Differences to the JavaScript API](../index.html#differences-to-the-javascript-api) for details.
 /// 
 /// # Example
 ///
 /// ```rust,no_run
-/// use tauri_api::event::once;
+/// use tauri_wasm::api::event::once;
 /// use serde::Deserialize;
 /// use web_sys::console;
 ///

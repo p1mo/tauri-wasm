@@ -157,6 +157,16 @@ fn main() {
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
         <tr>
+            <td align="center"><ul><li> [ ] </li></ul></td>
+            <td><code>webview</code></td>
+            <td align="center"><code>api</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
+            <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+            <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+        </tr>
+        <tr>
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>window</code></td>
             <td align="center"><code>api</code></td>
