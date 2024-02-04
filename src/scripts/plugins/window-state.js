@@ -72,9 +72,10 @@ async function _unlisten(event, eventId) {
   });
 }
 async function listen(event, handler, options) {
+  const target = typeof options?.target === "string" ? { kind: "AnyLabel", label: options.target } : options?.target ?? { kind: "Any" };
   return invoke("plugin:event|listen", {
     event,
-    target: options?.target,
+    target,
     handler: transformCallback(handler)
   }).then((eventId) => {
     return async () => _unlisten(event, eventId);
@@ -91,10 +92,17 @@ async function once(event, handler, options) {
     options
   );
 }
-async function emit(event, payload, options) {
+async function emit(event, payload) {
   await invoke("plugin:event|emit", {
     event,
-    target: options?.target,
+    payload
+  });
+}
+async function emitTo(target, event, payload) {
+  const eventTarget = typeof target === "string" ? { kind: "AnyLabel", label: target } : target;
+  await invoke("plugin:event|emit_to", {
+    target: eventTarget,
+    event,
     payload
   });
 }
@@ -103,14 +111,11 @@ async function emit(event, payload, options) {
 var CloseRequestedEvent = class {
   /** Event name */
   event;
-  /** The source of the event. */
-  source;
   /** Event identifier used to unlisten */
   id;
   _preventDefault = false;
   constructor(event) {
     this.event = event.event;
-    this.source = event.source;
     this.id = event.id;
   }
   preventDefault() {
@@ -167,6 +172,7 @@ var Window = class {
       invoke("plugin:window|create", {
         options: {
           ...options,
+          parent: typeof options.parent === "string" ? options.parent : options.parent?.label,
           label
         }
       }).then(async () => this.emit("tauri://created")).catch(async (e) => this.emit("tauri://error", e));
@@ -217,7 +223,7 @@ var Window = class {
     return null;
   }
   /**
-   * Listen to an event emitted by the backend that is tied to the window.
+   * Listen to an emitted event on this window.
    *
    * @example
    * ```typescript
@@ -243,11 +249,11 @@ var Window = class {
       });
     }
     return listen(event, handler, {
-      target: { kind: "window", label: this.label }
+      target: { kind: "Window", label: this.label }
     });
   }
   /**
-   * Listen to an one-off event emitted by the backend that is tied to the window.
+   * Listen to an emitted event on this window only once.
    *
    * @example
    * ```typescript
@@ -273,11 +279,11 @@ var Window = class {
       });
     }
     return once(event, handler, {
-      target: { kind: "window", label: this.label }
+      target: { kind: "Window", label: this.label }
     });
   }
   /**
-   * Emits an event to the backend, tied to the window.
+   * Emits an event to all {@link EventTarget|targets}.
    * @example
    * ```typescript
    * import { getCurrent } from '@tauri-apps/api/window';
@@ -293,15 +299,37 @@ var Window = class {
         handler({
           event,
           id: -1,
-          source: { kind: "window", label: this.label },
           payload
         });
       }
       return Promise.resolve();
     }
-    return emit(event, payload, {
-      target: { kind: "window", label: this.label }
-    });
+    return emit(event, payload);
+  }
+  /**
+   * Emits an event to all {@link EventTarget|targets} matching the given target.
+   *
+   * @example
+   * ```typescript
+   * import { getCurrent } from '@tauri-apps/api/window';
+   * await getCurrent().emit('window-loaded', { loggedIn: true, token: 'authToken' });
+   * ```
+   * @param target Label of the target Window/Webview/WebviewWindow or raw {@link EventTarget} object.
+   * @param event Event name. Must include only alphanumeric characters, `-`, `/`, `:` and `_`.
+   * @param payload Event payload.
+   */
+  async emitTo(target, event, payload) {
+    if (localTauriEvents.includes(event)) {
+      for (const handler of this.listeners[event] || []) {
+        handler({
+          event,
+          id: -1,
+          payload
+        });
+      }
+      return Promise.resolve();
+    }
+    return emitTo(target, event, payload);
   }
   /** @ignore */
   _handleTauriEvent(event, handler) {
@@ -851,6 +879,8 @@ var Window = class {
   }
   /**
    * Closes the window.
+   *
+   * Note this emits a closeRequested event so you can intercept it. To force window close, use {@link Window.destroy}.
    * @example
    * ```typescript
    * import { getCurrent } from '@tauri-apps/api/window';
@@ -861,6 +891,21 @@ var Window = class {
    */
   async close() {
     return invoke("plugin:window|close", {
+      label: this.label
+    });
+  }
+  /**
+   * Destroys the window. Behaves like {@link Window.close} but forces the window close instead of emitting a closeRequested event.
+   * @example
+   * ```typescript
+   * import { getCurrent } from '@tauri-apps/api/window';
+   * await getCurrent().destroy();
+   * ```
+   *
+   * @returns A promise indicating the success or failure of the operation.
+   */
+  async destroy() {
+    return invoke("plugin:window|destroy", {
       label: this.label
     });
   }
@@ -1330,6 +1375,21 @@ var Window = class {
       value: state
     });
   }
+  /**
+   * Sets whether the window should be visible on all workspaces or virtual desktops.
+   *
+   * ## Platform-specific
+   *
+   * - **Windows / iOS / Android:** Unsupported.
+   *
+   * @since 2.0.0
+   */
+  async setVisibleOnAllWorkspaces(visible) {
+    return invoke("plugin:window|set_visible_on_all_workspaces", {
+      label: this.label,
+      value: visible
+    });
+  }
   // Listeners
   /**
    * Listen to window resize.
@@ -1405,7 +1465,7 @@ var Window = class {
       const evt = new CloseRequestedEvent(event);
       void Promise.resolve(handler(evt)).then(() => {
         if (!evt.isPreventDefault()) {
-          return this.close();
+          return this.destroy();
         }
       });
     });

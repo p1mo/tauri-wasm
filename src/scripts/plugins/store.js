@@ -14,9 +14,10 @@ async function _unlisten(event, eventId) {
   });
 }
 async function listen(event, handler, options) {
+  const target = typeof options?.target === "string" ? { kind: "AnyLabel", label: options.target } : options?.target ?? { kind: "Any" };
   return invoke("plugin:event|listen", {
     event,
-    target: options?.target,
+    target,
     handler: transformCallback(handler)
   }).then((eventId) => {
     return async () => _unlisten(event, eventId);

@@ -126,7 +126,7 @@ async function write(records, options) {
   });
 }
 async function isAvailable() {
-  return await invoke("plugin:nfc|isAvailable");
+  return await invoke("plugin:nfc|is_available");
 }
 export {
   NFCTypeNameFormat,

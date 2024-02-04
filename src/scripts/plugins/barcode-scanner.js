@@ -21,23 +21,23 @@ var Format = /* @__PURE__ */ ((Format2) => {
   return Format2;
 })(Format || {});
 async function scan(options) {
-  return await invoke("plugin:barcodeScanner|scan", { ...options });
+  return await invoke("plugin:barcode-scanner|scan", { ...options });
 }
 async function cancel() {
-  return await invoke("plugin:barcodeScanner|cancel");
+  return await invoke("plugin:barcode-scanner|cancel");
 }
 async function checkPermissions() {
   return await invoke(
-    "plugin:barcodeScanner|checkPermissions"
+    "plugin:barcode-scanner|check_permissions"
   ).then((r) => r.camera);
 }
 async function requestPermissions() {
   return await invoke(
-    "plugin:barcodeScanner|requestPermissions"
+    "plugin:barcode-scanner|request_permissions"
   ).then((r) => r.camera);
 }
 async function openAppSettings() {
-  return await invoke("plugin:barcodeScanner|openAppSettings");
+  return await invoke("plugin:barcode-scanner|open_app_settings");
 }
 export {
   Format,
