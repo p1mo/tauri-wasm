@@ -5,7 +5,7 @@ async function invoke(cmd, args = {}, options) {
 
 // tauri-plugins/plugins/clipboard-manager/guest-js/index.ts
 async function writeText(text, opts) {
-  return invoke("plugin:clipboard|write", {
+  return invoke("plugin:clipboard-manager|write", {
     data: {
       plainText: {
         label: opts?.label,
@@ -15,7 +15,7 @@ async function writeText(text, opts) {
   });
 }
 async function readText() {
-  const kind = await invoke("plugin:clipboard|read");
+  const kind = await invoke("plugin:clipboard-manager|read");
   return kind.plainText.text;
 }
 export {

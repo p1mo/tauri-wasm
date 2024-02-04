@@ -31,7 +31,7 @@ async function invoke(cmd, args = {}, options) {
 async function register(shortcut, handler) {
   const h = new Channel();
   h.onmessage = handler;
-  return await invoke("plugin:globalShortcut|register", {
+  return await invoke("plugin:global-shortcut|register", {
     shortcut,
     handler: h
   });
@@ -39,23 +39,23 @@ async function register(shortcut, handler) {
 async function registerAll(shortcuts, handler) {
   const h = new Channel();
   h.onmessage = handler;
-  return await invoke("plugin:globalShortcut|register_all", {
+  return await invoke("plugin:global-shortcut|register_all", {
     shortcuts,
     handler: h
   });
 }
 async function isRegistered(shortcut) {
-  return await invoke("plugin:globalShortcut|is_registered", {
+  return await invoke("plugin:global-shortcut|is_registered", {
     shortcut
   });
 }
 async function unregister(shortcut) {
-  return await invoke("plugin:globalShortcut|unregister", {
+  return await invoke("plugin:global-shortcut|unregister", {
     shortcut
   });
 }
 async function unregisterAll() {
-  return await invoke("plugin:globalShortcut|unregister_all");
+  return await invoke("plugin:global-shortcut|unregister_all");
 }
 export {
   isRegistered,

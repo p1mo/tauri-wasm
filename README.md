@@ -17,7 +17,7 @@
 </div>
 
 <div align="center">
-    <img src="https://img.shields.io/badge/API_Version-2.0.0--alpha--14-FF6868">
+    <img src="https://img.shields.io/badge/API_Version-2.0.0--beta--1-FFA447">
     <img src="https://img.shields.io/badge/tauri--wasm-unofficial-FE7A36">
     <a href="https://github.com/JonasKruckenberg/tauri-sys"><img src="https://img.shields.io/badge/tauri__sys-tauri_v1-65B741"></a>
 </div>

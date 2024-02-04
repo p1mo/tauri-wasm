@@ -62,21 +62,27 @@ var ScheduleEvery = /* @__PURE__ */ ((ScheduleEvery2) => {
   ScheduleEvery2["Second"] = "second";
   return ScheduleEvery2;
 })(ScheduleEvery || {});
-var Schedule = class _Schedule {
-  constructor(schedule) {
-    this.schedule = schedule;
-  }
-  toJSON() {
-    return JSON.stringify(this.schedule);
-  }
+var Schedule = class {
   static at(date, repeating = false, allowWhileIdle = false) {
-    return new _Schedule({ at: { date, repeating, allowWhileIdle } });
+    return {
+      at: { date, repeating, allowWhileIdle },
+      interval: void 0,
+      every: void 0
+    };
   }
   static interval(interval, allowWhileIdle = false) {
-    return new _Schedule({ interval: { interval, allowWhileIdle } });
+    return {
+      at: void 0,
+      interval: { interval, allowWhileIdle },
+      every: void 0
+    };
   }
   static every(kind, count, allowWhileIdle = false) {
-    return new _Schedule({ every: { interval: kind, count, allowWhileIdle } });
+    return {
+      at: void 0,
+      interval: void 0,
+      every: { interval: kind, count, allowWhileIdle }
+    };
   }
 };
 var Importance = /* @__PURE__ */ ((Importance2) => {

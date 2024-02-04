@@ -29,9 +29,10 @@ async function _unlisten(event, eventId) {
   });
 }
 async function listen(event, handler, options) {
+  const target = typeof options?.target === "string" ? { kind: "AnyLabel", label: options.target } : options?.target ?? { kind: "Any" };
   return invoke("plugin:event|listen", {
     event,
-    target: options?.target,
+    target,
     handler: transformCallback(handler)
   }).then((eventId) => {
     return async () => _unlisten(event, eventId);
@@ -48,16 +49,24 @@ async function once(event, handler, options) {
     options
   );
 }
-async function emit(event, payload, options) {
+async function emit(event, payload) {
   await invoke("plugin:event|emit", {
     event,
-    target: options?.target,
+    payload
+  });
+}
+async function emitTo(target, event, payload) {
+  const eventTarget = typeof target === "string" ? { kind: "AnyLabel", label: target } : target;
+  await invoke("plugin:event|emit_to", {
+    target: eventTarget,
+    event,
     payload
   });
 }
 export {
   TauriEvent,
   emit,
+  emitTo,
   listen,
   once
 };
