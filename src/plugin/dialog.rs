@@ -2,7 +2,7 @@
 //!
 
 use js_sys::Array;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 
 use crate::utils::ArrayIterator;
@@ -15,6 +15,7 @@ struct DialogFilter<'a> {
 /// The FileResponse (from the [Tauri v2 API](https://docs.rs/tauri-plugin-dialog/latest/tauri_plugin_dialog/struct.FileResponse.html))
 ///
 /// Constructs a FileResponse object that is returned when the FileDialog returns a file
+#[derive(Serialize, Deserialize, Debug, Clone, Hash)]
 pub struct FileResponse {
     pub base64_data: Option<String>,
     pub duration: Option<u64>,
@@ -146,7 +147,7 @@ impl<'a> FileDialogBuilder<'a> {
     pub async fn pick_file(&self) -> crate::Result<Option<FileResponse>> {
         let raw = inner::open(serde_wasm_bindgen::to_value(&self)?).await?;
         // Deserialize into FileData
-        let file_data: FileData = serde_wasm_bindgen::from_value(raw)?;
+        let file_data: FileResponse = serde_wasm_bindgen::from_value(raw)?;
         // Return the file data wrapped in Some
         Ok(Some(file_data))
     }
