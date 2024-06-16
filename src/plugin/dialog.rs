@@ -12,6 +12,21 @@ struct DialogFilter<'a> {
     name: &'a str,
 }
 
+/// The FileResponse (from the [Tauri v2 API](https://docs.rs/tauri-plugin-dialog/latest/tauri_plugin_dialog/struct.FileResponse.html))
+///
+/// Constructs a FileResponse object that is returned when the FileDialog returns a file
+pub struct FileResponse {
+    pub base64_data: Option<String>,
+    pub duration: Option<u64>,
+    pub height: Option<usize>,
+    pub width: Option<usize>,
+    pub mime_type: Option<String>,
+    pub modified_at: Option<u64>,
+    pub name: Option<String>,
+    pub path: PathBuf,
+    pub size: u64,
+}
+
 /// The file dialog builder.
 ///
 /// Constructs file picker dialogs that can select single/multiple files or directories.
@@ -128,10 +143,12 @@ impl<'a> FileDialogBuilder<'a> {
     /// # }
     /// ```
     ///
-    pub async fn pick_file(&self) -> crate::Result<Option<PathBuf>> {
+    pub async fn pick_file(&self) -> crate::Result<Option<FileResponse>> {
         let raw = inner::open(serde_wasm_bindgen::to_value(&self)?).await?;
-
-        Ok(serde_wasm_bindgen::from_value(raw)?)
+        // Deserialize into FileData
+        let file_data: FileData = serde_wasm_bindgen::from_value(raw)?;
+        // Return the file data wrapped in Some
+        Ok(Some(file_data))
     }
 
     /// Shows the dialog to select multiple files.
@@ -147,15 +164,15 @@ impl<'a> FileDialogBuilder<'a> {
     /// # }
     /// ```
     ///
-    pub async fn pick_files(&mut self) -> crate::Result<Option<impl Iterator<Item = PathBuf>>> {
+    pub async fn pick_files(&mut self) -> crate::Result<Option<impl Iterator<Item = FileResponse>>> {
         self.multiple = true;
-
+    
         let raw = inner::open(serde_wasm_bindgen::to_value(&self)?).await?;
-
+    
         if let Ok(files) = Array::try_from(raw) {
-            let files =
-                ArrayIterator::new(files).map(|raw| serde_wasm_bindgen::from_value(raw).unwrap());
-
+            let files = ArrayIterator::new(files)
+                .map(|raw| serde_wasm_bindgen::from_value::<FileResponse>(raw).unwrap());
+    
             Ok(Some(files))
         } else {
             Ok(None)
