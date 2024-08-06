@@ -8,10 +8,34 @@ var Channel = class {
   __TAURI_CHANNEL_MARKER__ = true;
   #onmessage = () => {
   };
+  #nextMessageId = 0;
+  #pendingMessages = {};
   constructor() {
-    this.id = transformCallback((response) => {
-      this.#onmessage(response);
-    });
+    this.id = transformCallback(
+      ({ message, id }) => {
+        if (id === this.#nextMessageId) {
+          this.#nextMessageId = id + 1;
+          this.#onmessage(message);
+          const pendingMessageIds = Object.keys(this.#pendingMessages);
+          if (pendingMessageIds.length > 0) {
+            let nextId = id + 1;
+            for (const pendingId of pendingMessageIds.sort()) {
+              if (parseInt(pendingId) === nextId) {
+                const message2 = this.#pendingMessages[pendingId];
+                delete this.#pendingMessages[pendingId];
+                this.#onmessage(message2);
+                nextId += 1;
+              } else {
+                break;
+              }
+            }
+            this.#nextMessageId = nextId;
+          }
+        } else {
+          this.#pendingMessages[id.toString()] = message;
+        }
+      }
+    );
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -86,9 +110,9 @@ function parseFileInfo(r) {
     isDirectory: r.isDirectory,
     isSymlink: r.isSymlink,
     size: r.size,
-    mtime: r.mtime != null ? new Date(r.mtime) : null,
-    atime: r.atime != null ? new Date(r.atime) : null,
-    birthtime: r.birthtime != null ? new Date(r.birthtime) : null,
+    mtime: r.mtime !== null ? new Date(r.mtime) : null,
+    atime: r.atime !== null ? new Date(r.atime) : null,
+    birthtime: r.birthtime !== null ? new Date(r.birthtime) : null,
     readonly: r.readonly,
     fileAttributes: r.fileAttributes,
     dev: r.dev,
@@ -103,9 +127,6 @@ function parseFileInfo(r) {
   };
 }
 var FileHandle = class extends Resource {
-  constructor(rid) {
-    super(rid);
-  }
   /**
    * Reads up to `p.byteLength` bytes into `p`. It resolves to the number of
    * bytes read (`0` < `n` <= `p.byteLength`) and rejects if any error
@@ -128,7 +149,7 @@ var FileHandle = class extends Resource {
    * ```typescript
    * import { open, read, close, BaseDirectory } from "@tauri-apps/plugin-fs"
    * // if "$APP/foo/bar.txt" contains the text "hello world":
-   * const file = await open("foo/bar.txt", { dir: BaseDirectory.App });
+   * const file = await open("foo/bar.txt", { baseDir: BaseDirectory.App });
    * const buf = new Uint8Array(100);
    * const numberOfBytesRead = await file.read(buf); // 11 bytes
    * const text = new TextDecoder().decode(buf);  // "hello world"
@@ -165,8 +186,8 @@ var FileHandle = class extends Resource {
    * import { open, seek, write, SeekMode, BaseDirectory } from '@tauri-apps/plugin-fs';
    *
    * // Given hello.txt pointing to file with "Hello world", which is 11 bytes long:
-   * const file = await open('hello.txt', { read: true, write: true, truncate: true, create: true, dir: BaseDirectory.App });
-   * await file.write(new TextEncoder().encode("Hello world"), { dir: BaseDirectory.App });
+   * const file = await open('hello.txt', { read: true, write: true, truncate: true, create: true, baseDir: BaseDirectory.App });
+   * await file.write(new TextEncoder().encode("Hello world"), { baseDir: BaseDirectory.App });
    *
    * // Seek 6 bytes from the start of the file
    * console.log(await file.seek(6, SeekMode.Start)); // "6"
@@ -179,7 +200,7 @@ var FileHandle = class extends Resource {
    * @since 2.0.0
    */
   async seek(offset, whence) {
-    return invoke("plugin:fs|seek", {
+    return await invoke("plugin:fs|seek", {
       rid: this.rid,
       offset,
       whence
@@ -191,7 +212,7 @@ var FileHandle = class extends Resource {
    * @example
    * ```typescript
    * import { open, fstat, BaseDirectory } from '@tauri-apps/plugin-fs';
-   * const file = await open("file.txt", { read: true, dir: BaseDirectory.App });
+   * const file = await open("file.txt", { read: true, baseDir: BaseDirectory.App });
    * const fileInfo = await fstat(file.rid);
    * console.log(fileInfo.isFile); // true
    * ```
@@ -213,11 +234,11 @@ var FileHandle = class extends Resource {
    * import { ftruncate, open, write, read, BaseDirectory } from '@tauri-apps/plugin-fs';
    *
    * // truncate the entire file
-   * const file = await open("my_file.txt", { read: true, write: true, create: true, dir: BaseDirectory.App });
+   * const file = await open("my_file.txt", { read: true, write: true, create: true, baseDir: BaseDirectory.App });
    * await ftruncate(file.rid);
    *
    * // truncate part of the file
-   * const file = await open("my_file.txt", { read: true, write: true, create: true, dir: BaseDirectory.App });
+   * const file = await open("my_file.txt", { read: true, write: true, create: true, baseDir: BaseDirectory.App });
    * await write(file.rid, new TextEncoder().encode("Hello World"));
    * await ftruncate(file.rid, 7);
    * const data = new Uint8Array(32);
@@ -228,7 +249,7 @@ var FileHandle = class extends Resource {
    * @since 2.0.0
    */
   async truncate(len) {
-    return invoke("plugin:fs|ftruncate", {
+    await invoke("plugin:fs|ftruncate", {
       rid: this.rid,
       len
     });
@@ -246,7 +267,7 @@ var FileHandle = class extends Resource {
    * import { open, write, close, BaseDirectory } from '@tauri-apps/plugin-fs';
    * const encoder = new TextEncoder();
    * const data = encoder.encode("Hello world");
-   * const file = await open("bar.txt", { write: true, dir: BaseDirectory.App });
+   * const file = await open("bar.txt", { write: true, baseDir: BaseDirectory.App });
    * const bytesWritten = await write(file.rid, data); // 11
    * await close(file.rid);
    * ```
@@ -254,7 +275,7 @@ var FileHandle = class extends Resource {
    * @since 2.0.0
    */
   async write(data) {
-    return invoke("plugin:fs|write", {
+    return await invoke("plugin:fs|write", {
       rid: this.rid,
       data: Array.from(data)
     });
@@ -284,7 +305,7 @@ async function copyFile(fromPath, toPath, options) {
   if (fromPath instanceof URL && fromPath.protocol !== "file:" || toPath instanceof URL && toPath.protocol !== "file:") {
     throw new TypeError("Must be a file URL.");
   }
-  return invoke("plugin:fs|copy_file", {
+  await invoke("plugin:fs|copy_file", {
     fromPath: fromPath instanceof URL ? fromPath.toString() : fromPath,
     toPath: toPath instanceof URL ? toPath.toString() : toPath,
     options
@@ -294,7 +315,7 @@ async function mkdir(path, options) {
   if (path instanceof URL && path.protocol !== "file:") {
     throw new TypeError("Must be a file URL.");
   }
-  return invoke("plugin:fs|mkdir", {
+  await invoke("plugin:fs|mkdir", {
     path: path instanceof URL ? path.toString() : path,
     options
   });
@@ -303,7 +324,7 @@ async function readDir(path, options) {
   if (path instanceof URL && path.protocol !== "file:") {
     throw new TypeError("Must be a file URL.");
   }
-  return invoke("plugin:fs|read_dir", {
+  return await invoke("plugin:fs|read_dir", {
     path: path instanceof URL ? path.toString() : path,
     options
   });
@@ -316,13 +337,13 @@ async function readFile(path, options) {
     path: path instanceof URL ? path.toString() : path,
     options
   });
-  return Uint8Array.from(arr);
+  return arr instanceof ArrayBuffer ? new Uint8Array(arr) : Uint8Array.from(arr);
 }
 async function readTextFile(path, options) {
   if (path instanceof URL && path.protocol !== "file:") {
     throw new TypeError("Must be a file URL.");
   }
-  return invoke("plugin:fs|read_text_file", {
+  return await invoke("plugin:fs|read_text_file", {
     path: path instanceof URL ? path.toString() : path,
     options
   });
@@ -332,11 +353,11 @@ async function readTextFileLines(path, options) {
     throw new TypeError("Must be a file URL.");
   }
   const pathStr = path instanceof URL ? path.toString() : path;
-  return Promise.resolve({
+  return await Promise.resolve({
     path: pathStr,
     rid: null,
     async next() {
-      if (!this.rid) {
+      if (this.rid === null) {
         this.rid = await invoke("plugin:fs|read_text_file_lines", {
           path: pathStr,
           options
@@ -362,7 +383,7 @@ async function remove(path, options) {
   if (path instanceof URL && path.protocol !== "file:") {
     throw new TypeError("Must be a file URL.");
   }
-  return invoke("plugin:fs|remove", {
+  await invoke("plugin:fs|remove", {
     path: path instanceof URL ? path.toString() : path,
     options
   });
@@ -371,7 +392,7 @@ async function rename(oldPath, newPath, options) {
   if (oldPath instanceof URL && oldPath.protocol !== "file:" || newPath instanceof URL && newPath.protocol !== "file:") {
     throw new TypeError("Must be a file URL.");
   }
-  return invoke("plugin:fs|rename", {
+  await invoke("plugin:fs|rename", {
     oldPath: oldPath instanceof URL ? oldPath.toString() : oldPath,
     newPath: newPath instanceof URL ? newPath.toString() : newPath,
     options
@@ -395,7 +416,7 @@ async function truncate(path, len, options) {
   if (path instanceof URL && path.protocol !== "file:") {
     throw new TypeError("Must be a file URL.");
   }
-  return invoke("plugin:fs|truncate", {
+  await invoke("plugin:fs|truncate", {
     path: path instanceof URL ? path.toString() : path,
     len,
     options
@@ -405,17 +426,18 @@ async function writeFile(path, data, options) {
   if (path instanceof URL && path.protocol !== "file:") {
     throw new TypeError("Must be a file URL.");
   }
-  return invoke("plugin:fs|write_file", {
-    path: path instanceof URL ? path.toString() : path,
-    data: Array.from(data),
-    options
+  await invoke("plugin:fs|write_file", data, {
+    headers: {
+      path: path instanceof URL ? path.toString() : path,
+      options: JSON.stringify(options)
+    }
   });
 }
 async function writeTextFile(path, data, options) {
   if (path instanceof URL && path.protocol !== "file:") {
     throw new TypeError("Must be a file URL.");
   }
-  return invoke("plugin:fs|write_text_file", {
+  await invoke("plugin:fs|write_text_file", {
     path: path instanceof URL ? path.toString() : path,
     data,
     options
@@ -425,7 +447,7 @@ async function exists(path, options) {
   if (path instanceof URL && path.protocol !== "file:") {
     throw new TypeError("Must be a file URL.");
   }
-  return invoke("plugin:fs|exists", {
+  return await invoke("plugin:fs|exists", {
     path: path instanceof URL ? path.toString() : path,
     options
   });

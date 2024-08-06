@@ -8,10 +8,34 @@ var Channel = class {
   __TAURI_CHANNEL_MARKER__ = true;
   #onmessage = () => {
   };
+  #nextMessageId = 0;
+  #pendingMessages = {};
   constructor() {
-    this.id = transformCallback((response) => {
-      this.#onmessage(response);
-    });
+    this.id = transformCallback(
+      ({ message, id }) => {
+        if (id === this.#nextMessageId) {
+          this.#nextMessageId = id + 1;
+          this.#onmessage(message);
+          const pendingMessageIds = Object.keys(this.#pendingMessages);
+          if (pendingMessageIds.length > 0) {
+            let nextId = id + 1;
+            for (const pendingId of pendingMessageIds.sort()) {
+              if (parseInt(pendingId) === nextId) {
+                const message2 = this.#pendingMessages[pendingId];
+                delete this.#pendingMessages[pendingId];
+                this.#onmessage(message2);
+                nextId += 1;
+              } else {
+                break;
+              }
+            }
+            this.#nextMessageId = nextId;
+          }
+        } else {
+          this.#pendingMessages[id.toString()] = message;
+        }
+      }
+    );
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -33,10 +57,10 @@ async function upload(url, filePath, progressHandler, headers) {
   window.crypto.getRandomValues(ids);
   const id = ids[0];
   const onProgress = new Channel();
-  if (progressHandler != null) {
+  if (progressHandler) {
     onProgress.onmessage = progressHandler;
   }
-  await invoke("plugin:upload|upload", {
+  return await invoke("plugin:upload|upload", {
     id,
     url,
     filePath,
@@ -49,7 +73,7 @@ async function download(url, filePath, progressHandler, headers) {
   window.crypto.getRandomValues(ids);
   const id = ids[0];
   const onProgress = new Channel();
-  if (progressHandler != null) {
+  if (progressHandler) {
     onProgress.onmessage = progressHandler;
   }
   await invoke("plugin:upload|download", {

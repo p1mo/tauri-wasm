@@ -184,10 +184,10 @@ var Store = class {
       snapshotPath: this.path,
       client: this.client,
       key: toBytesDto(key)
-    }).then((v) => v != null ? Uint8Array.from(v) : null);
+    }).then((v) => v && Uint8Array.from(v));
   }
   async insert(key, value, lifetime) {
-    return await invoke("plugin:stronghold|save_store_record", {
+    await invoke("plugin:stronghold|save_store_record", {
       snapshotPath: this.path,
       client: this.client,
       key: toBytesDto(key),
@@ -203,7 +203,7 @@ var Store = class {
         client: this.client,
         key: toBytesDto(key)
       }
-    ).then((v) => v != null ? Uint8Array.from(v) : null);
+    ).then((v) => v && Uint8Array.from(v));
   }
 };
 var Vault = class extends ProcedureExecutor {
@@ -225,7 +225,7 @@ var Vault = class extends ProcedureExecutor {
    * @returns
    */
   async insert(recordPath, secret) {
-    return await invoke("plugin:stronghold|save_secret", {
+    await invoke("plugin:stronghold|save_secret", {
       snapshotPath: this.path,
       client: this.client,
       vault: this.name,
@@ -240,7 +240,7 @@ var Vault = class extends ProcedureExecutor {
    * @returns
    */
   async remove(location) {
-    return await invoke("plugin:stronghold|remove_secret", {
+    await invoke("plugin:stronghold|remove_secret", {
       snapshotPath: this.path,
       client: this.client,
       vault: this.name,
@@ -273,7 +273,7 @@ var Stronghold = class _Stronghold {
    * Remove this instance from the cache.
    */
   async unload() {
-    return await invoke("plugin:stronghold|destroy", {
+    await invoke("plugin:stronghold|destroy", {
       snapshotPath: this.path
     });
   }
@@ -294,7 +294,7 @@ var Stronghold = class _Stronghold {
    * @returns
    */
   async save() {
-    return await invoke("plugin:stronghold|save", {
+    await invoke("plugin:stronghold|save", {
       snapshotPath: this.path
     });
   }

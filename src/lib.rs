@@ -1,6 +1,6 @@
 //! [![](https://github.com/p1mo/tauri-wasm/blob/main/.github/banner.png)](https://github.com/p1mo/tauri-wasm)
 //! # Tauri v2 wasm bindings
-//! **Version:** 2.0.0-beta-1
+//! **Version:** 2.0.0-rc.0
 
 
 use wasm_bindgen::JsValue;
@@ -37,6 +37,9 @@ pub mod api {
     /// # Tray bindings
     #[cfg(feature = "tray")]
     pub mod tray;
+    /// # Webview Window bindings
+    #[cfg(feature = "webview-window")]
+    pub mod webview_window;
     /// # Webview bindings
     #[cfg(feature = "webview")]
     pub mod webview;
@@ -74,9 +77,15 @@ pub mod plugin {
     /// # FS bindings
     #[cfg(feature = "fs")]
     pub mod fs;
+    /// # Geolocation bindings
+    #[cfg(feature = "geolocation")]
+    pub mod geolocation;
     /// # Global Shortcut bindings
     #[cfg(feature = "global-shortcut")]
     pub mod global_shortcut;
+    /// # Haptics bindings
+    #[cfg(feature = "haptics")]
+    pub mod haptics;
     /// # Http bindings
     #[cfg(feature = "http")]
     pub mod http;

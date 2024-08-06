@@ -8,10 +8,34 @@ var Channel = class {
   __TAURI_CHANNEL_MARKER__ = true;
   #onmessage = () => {
   };
+  #nextMessageId = 0;
+  #pendingMessages = {};
   constructor() {
-    this.id = transformCallback((response) => {
-      this.#onmessage(response);
-    });
+    this.id = transformCallback(
+      ({ message, id }) => {
+        if (id === this.#nextMessageId) {
+          this.#nextMessageId = id + 1;
+          this.#onmessage(message);
+          const pendingMessageIds = Object.keys(this.#pendingMessages);
+          if (pendingMessageIds.length > 0) {
+            let nextId = id + 1;
+            for (const pendingId of pendingMessageIds.sort()) {
+              if (parseInt(pendingId) === nextId) {
+                const message2 = this.#pendingMessages[pendingId];
+                delete this.#pendingMessages[pendingId];
+                this.#onmessage(message2);
+                nextId += 1;
+              } else {
+                break;
+              }
+            }
+            this.#nextMessageId = nextId;
+          }
+        } else {
+          this.#pendingMessages[id.toString()] = message;
+        }
+      }
+    );
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -37,7 +61,9 @@ var WebSocket = class _WebSocket {
     const listeners = [];
     const onMessage = new Channel();
     onMessage.onmessage = (message) => {
-      listeners.forEach((l) => l(message));
+      listeners.forEach((l) => {
+        l(message);
+      });
     };
     if (config?.headers) {
       config.headers = Array.from(new Headers(config.headers).entries());
@@ -64,13 +90,13 @@ var WebSocket = class _WebSocket {
         "invalid `message` type, expected a `{ type: string, data: any }` object, a string or a numeric array"
       );
     }
-    return await invoke("plugin:websocket|send", {
+    await invoke("plugin:websocket|send", {
       id: this.id,
       message: m
     });
   }
   async disconnect() {
-    return await this.send({
+    await this.send({
       type: "Close",
       data: {
         code: 1e3,

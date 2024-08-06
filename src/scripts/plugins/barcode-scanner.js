@@ -24,7 +24,7 @@ async function scan(options) {
   return await invoke("plugin:barcode-scanner|scan", { ...options });
 }
 async function cancel() {
-  return await invoke("plugin:barcode-scanner|cancel");
+  await invoke("plugin:barcode-scanner|cancel");
 }
 async function checkPermissions() {
   return await invoke(
@@ -37,7 +37,7 @@ async function requestPermissions() {
   ).then((r) => r.camera);
 }
 async function openAppSettings() {
-  return await invoke("plugin:barcode-scanner|open_app_settings");
+  await invoke("plugin:barcode-scanner|open_app_settings");
 }
 export {
   Format,

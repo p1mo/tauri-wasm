@@ -89,33 +89,7 @@ function transformImage(image) {
   const ret = image == null ? null : typeof image === "string" ? image : image instanceof Uint8Array ? Array.from(image) : image instanceof ArrayBuffer ? Array.from(new Uint8Array(image)) : image instanceof Image ? image.rid : image;
   return ret;
 }
-
-// tauri-v2/tooling/api/src/app.ts
-async function getVersion() {
-  return invoke("plugin:app|version");
-}
-async function getName() {
-  return invoke("plugin:app|name");
-}
-async function getTauriVersion() {
-  return invoke("plugin:app|tauri_version");
-}
-async function show() {
-  return invoke("plugin:app|app_show");
-}
-async function hide() {
-  return invoke("plugin:app|app_hide");
-}
-async function defaultWindowIcon() {
-  return invoke("plugin:app|default_window_icon").then(
-    (rid) => rid ? new Image(rid) : null
-  );
-}
 export {
-  defaultWindowIcon,
-  getName,
-  getTauriVersion,
-  getVersion,
-  hide,
-  show
+  Image,
+  transformImage
 };

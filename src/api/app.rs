@@ -78,7 +78,7 @@ mod base {
     extern "C" {
         #[wasm_bindgen(catch)]
         pub async fn getName() -> Result<JsValue, JsValue>;
-        #[wasm_bindgen(catch)]
+        #[wasm_bindgen(catch, js_name = "getTauriVersion")]
         pub async fn getTauriVersion() -> Result<JsValue, JsValue>;
         #[wasm_bindgen(catch)]
         pub async fn getVersion() -> Result<JsValue, JsValue>;

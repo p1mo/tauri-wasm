@@ -28,17 +28,28 @@ async function listen(event, handler, options) {
 async function getCurrent() {
   return await invoke("plugin:deep-link|get_current");
 }
+async function register(protocol) {
+  return await invoke("plugin:deep-link|register", { protocol });
+}
+async function unregister(protocol) {
+  return await invoke("plugin:deep-link|unregister", { protocol });
+}
+async function isRegistered(protocol) {
+  return await invoke("plugin:deep-link|is_registered", { protocol });
+}
 async function onOpenUrl(handler) {
   const current = await getCurrent();
-  if (current != null) {
+  if (current) {
     handler(current);
   }
-  return await listen(
-    "deep-link://new-url",
-    (event) => handler(event.payload)
-  );
+  return await listen("deep-link://new-url", (event) => {
+    handler(event.payload);
+  });
 }
 export {
   getCurrent,
-  onOpenUrl
+  isRegistered,
+  onOpenUrl,
+  register,
+  unregister
 };

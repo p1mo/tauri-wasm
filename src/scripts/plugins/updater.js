@@ -8,10 +8,34 @@ var Channel = class {
   __TAURI_CHANNEL_MARKER__ = true;
   #onmessage = () => {
   };
+  #nextMessageId = 0;
+  #pendingMessages = {};
   constructor() {
-    this.id = transformCallback((response) => {
-      this.#onmessage(response);
-    });
+    this.id = transformCallback(
+      ({ message, id }) => {
+        if (id === this.#nextMessageId) {
+          this.#nextMessageId = id + 1;
+          this.#onmessage(message);
+          const pendingMessageIds = Object.keys(this.#pendingMessages);
+          if (pendingMessageIds.length > 0) {
+            let nextId = id + 1;
+            for (const pendingId of pendingMessageIds.sort()) {
+              if (parseInt(pendingId) === nextId) {
+                const message2 = this.#pendingMessages[pendingId];
+                delete this.#pendingMessages[pendingId];
+                this.#onmessage(message2);
+                nextId += 1;
+              } else {
+                break;
+              }
+            }
+            this.#nextMessageId = nextId;
+          }
+        } else {
+          this.#pendingMessages[id.toString()] = message;
+        }
+      }
+    );
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -55,23 +79,50 @@ var Update = class extends Resource {
     this.date = metadata.date;
     this.body = metadata.body;
   }
+  /** Download the updater package */
+  async download(onEvent) {
+    const channel = new Channel();
+    if (onEvent) {
+      channel.onmessage = onEvent;
+    }
+    const downloadedBytesRid = await invoke("plugin:updater|download", {
+      onEvent: channel,
+      rid: this.rid
+    });
+    this.downloadedBytes = new Resource(downloadedBytesRid);
+  }
+  /** Install downloaded updater package */
+  async install() {
+    if (!this.downloadedBytes) {
+      throw new Error("Update.install called before Update.download");
+    }
+    await invoke("plugin:updater|install", {
+      updateRid: this.rid,
+      bytesRid: this.downloadedBytes.rid
+    });
+    this.downloadedBytes = void 0;
+  }
   /** Downloads the updater package and installs it */
   async downloadAndInstall(onEvent) {
     const channel = new Channel();
     if (onEvent) {
       channel.onmessage = onEvent;
     }
-    return invoke("plugin:updater|download_and_install", {
+    await invoke("plugin:updater|download_and_install", {
       onEvent: channel,
       rid: this.rid
     });
+  }
+  async close() {
+    await this.downloadedBytes?.close();
+    await super.close();
   }
 };
 async function check(options) {
   if (options?.headers) {
     options.headers = Array.from(new Headers(options.headers).entries());
   }
-  return invoke("plugin:updater|check", {
+  return await invoke("plugin:updater|check", {
     ...options
   }).then((meta) => meta.available ? new Update(meta) : null);
 }

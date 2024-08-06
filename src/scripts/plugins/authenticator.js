@@ -6,7 +6,7 @@ async function invoke(cmd, args = {}, options) {
 // tauri-plugins/plugins/authenticator/guest-js/index.ts
 var Authenticator = class {
   async init() {
-    return await invoke("plugin:authenticator|init_auth");
+    await invoke("plugin:authenticator|init_auth");
   }
   async register(challenge, application) {
     return await invoke("plugin:authenticator|register", {

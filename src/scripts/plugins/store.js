@@ -37,7 +37,7 @@ var Store = class {
    * @returns
    */
   async set(key, value) {
-    return await invoke("plugin:store|set", {
+    await invoke("plugin:store|set", {
       path: this.path,
       key,
       value
@@ -86,7 +86,7 @@ var Store = class {
    * @returns
    */
   async clear() {
-    return await invoke("plugin:store|clear", {
+    await invoke("plugin:store|clear", {
       path: this.path
     });
   }
@@ -97,7 +97,7 @@ var Store = class {
    * @returns
    */
   async reset() {
-    return await invoke("plugin:store|reset", {
+    await invoke("plugin:store|reset", {
       path: this.path
     });
   }
@@ -150,7 +150,7 @@ var Store = class {
    * @returns
    */
   async load() {
-    return await invoke("plugin:store|load", {
+    await invoke("plugin:store|load", {
       path: this.path
     });
   }
@@ -162,7 +162,7 @@ var Store = class {
    * @returns
    */
   async save() {
-    return await invoke("plugin:store|save", {
+    await invoke("plugin:store|save", {
       path: this.path
     });
   }

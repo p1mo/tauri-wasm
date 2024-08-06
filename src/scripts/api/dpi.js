@@ -16,8 +16,8 @@ var PhysicalSize = class {
    * Converts the physical size to a logical one.
    * @example
    * ```typescript
-   * import { getCurrent } from '@tauri-apps/api/window';
-   * const appWindow = getCurrent();
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   * const appWindow = getCurrentWindow();
    * const factor = await appWindow.scaleFactor();
    * const size = await appWindow.innerSize();
    * const logical = size.toLogical(factor);
@@ -44,8 +44,8 @@ var PhysicalPosition = class {
    * Converts the physical position to a logical one.
    * @example
    * ```typescript
-   * import { getCurrent } from '@tauri-apps/api/window';
-   * const appWindow = getCurrent();
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   * const appWindow = getCurrentWindow();
    * const factor = await appWindow.scaleFactor();
    * const position = await appWindow.innerPosition();
    * const logical = position.toLogical(factor);

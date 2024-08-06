@@ -5,10 +5,10 @@ async function invoke(cmd, args = {}, options) {
 
 // tauri-plugins/plugins/process/guest-js/index.ts
 async function exit(code = 0) {
-  return invoke("plugin:process|exit", { code });
+  await invoke("plugin:process|exit", { code });
 }
 async function relaunch() {
-  return invoke("plugin:process|restart");
+  await invoke("plugin:process|restart");
 }
 export {
   exit,

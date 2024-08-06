@@ -8,11 +8,37 @@ var Channel = class {
     this.__TAURI_CHANNEL_MARKER__ = true;
     this.#onmessage = () => {
     };
-    this.id = transformCallback((response) => {
-      this.#onmessage(response);
-    });
+    this.#nextMessageId = 0;
+    this.#pendingMessages = {};
+    this.id = transformCallback(
+      ({ message, id }) => {
+        if (id === this.#nextMessageId) {
+          this.#nextMessageId = id + 1;
+          this.#onmessage(message);
+          const pendingMessageIds = Object.keys(this.#pendingMessages);
+          if (pendingMessageIds.length > 0) {
+            let nextId = id + 1;
+            for (const pendingId of pendingMessageIds.sort()) {
+              if (parseInt(pendingId) === nextId) {
+                const message2 = this.#pendingMessages[pendingId];
+                delete this.#pendingMessages[pendingId];
+                this.#onmessage(message2);
+                nextId += 1;
+              } else {
+                break;
+              }
+            }
+            this.#nextMessageId = nextId;
+          }
+        } else {
+          this.#pendingMessages[id.toString()] = message;
+        }
+      }
+    );
   }
   #onmessage;
+  #nextMessageId;
+  #pendingMessages;
   set onmessage(handler) {
     this.#onmessage = handler;
   }
@@ -45,6 +71,75 @@ var Resource = class {
   }
 };
 
+// tauri-v2/tooling/api/src/image.ts
+var Image = class _Image extends Resource {
+  /**
+   * Creates an Image from a resource ID. For internal use only.
+   *
+   * @ignore
+   */
+  constructor(rid) {
+    super(rid);
+  }
+  /** Creates a new Image using RGBA data, in row-major order from top to bottom, and with specified width and height. */
+  static async new(rgba, width, height) {
+    return invoke("plugin:image|new", {
+      rgba: transformImage(rgba),
+      width,
+      height
+    }).then((rid) => new _Image(rid));
+  }
+  /**
+   * Creates a new image using the provided bytes by inferring the file format.
+   * If the format is known, prefer [@link Image.fromPngBytes] or [@link Image.fromIcoBytes].
+   *
+   * Only `ico` and `png` are supported (based on activated feature flag).
+   *
+   * Note that you need the `image-ico` or `image-png` Cargo features to use this API.
+   * To enable it, change your Cargo.toml file:
+   * ```toml
+   * [dependencies]
+   * tauri = { version = "...", features = ["...", "image-png"] }
+   * ```
+   */
+  static async fromBytes(bytes) {
+    return invoke("plugin:image|from_bytes", {
+      bytes: transformImage(bytes)
+    }).then((rid) => new _Image(rid));
+  }
+  /**
+   * Creates a new image using the provided path.
+   *
+   * Only `ico` and `png` are supported (based on activated feature flag).
+   *
+   * Note that you need the `image-ico` or `image-png` Cargo features to use this API.
+   * To enable it, change your Cargo.toml file:
+   * ```toml
+   * [dependencies]
+   * tauri = { version = "...", features = ["...", "image-png"] }
+   * ```
+   */
+  static async fromPath(path) {
+    return invoke("plugin:image|from_path", { path }).then(
+      (rid) => new _Image(rid)
+    );
+  }
+  /** Returns the RGBA data for this image, in row-major order from top to bottom.  */
+  async rgba() {
+    return invoke("plugin:image|rgba", {
+      rid: this.rid
+    }).then((buffer) => new Uint8Array(buffer));
+  }
+  /** Returns the size of this image.  */
+  async size() {
+    return invoke("plugin:image|size", { rid: this.rid });
+  }
+};
+function transformImage(image) {
+  const ret = image == null ? null : typeof image === "string" ? image : image instanceof Uint8Array ? Array.from(image) : image instanceof ArrayBuffer ? Array.from(new Uint8Array(image)) : image instanceof Image ? image.rid : image;
+  return ret;
+}
+
 // tauri-v2/tooling/api/src/menu/base.ts
 function injectChannel(i) {
   if ("items" in i) {
@@ -71,6 +166,12 @@ async function newMenu(kind, opts) {
       items = opts.items.map((i) => {
         if ("rid" in i) {
           return [i.rid, i.kind];
+        }
+        if ("item" in i && typeof i.item === "object" && i.item.About?.icon) {
+          i.item.About.icon = transformImage(i.item.About.icon);
+        }
+        if ("icon" in i && i.icon) {
+          i.icon = transformImage(i.icon);
         }
         return injectChannel(i);
       });
@@ -307,7 +408,10 @@ var IconMenuItem = class _IconMenuItem extends MenuItemBase {
   }
   /** Sets an icon for this icon menu item */
   async setIcon(icon) {
-    return invoke("plugin:menu|set_icon", { rid: this.rid, icon });
+    return invoke("plugin:menu|set_icon", {
+      rid: this.rid,
+      icon: transformImage(icon)
+    });
   }
 };
 
@@ -355,8 +459,8 @@ var PhysicalPosition = class {
    * Converts the physical position to a logical one.
    * @example
    * ```typescript
-   * import { getCurrent } from '@tauri-apps/api/window';
-   * const appWindow = getCurrent();
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   * const appWindow = getCurrentWindow();
    * const factor = await appWindow.scaleFactor();
    * const position = await appWindow.innerPosition();
    * const logical = position.toLogical(factor);
@@ -419,7 +523,7 @@ var Submenu = class _Submenu extends MenuItemBase {
   /**
    * Add a menu item to the end of this submenu.
    *
-   * ## Platform-spcific:
+   * ## Platform-specific:
    *
    * - **macOS:** Only {@linkcode Submenu}s can be added to a {@linkcode Menu}.
    */
@@ -435,7 +539,7 @@ var Submenu = class _Submenu extends MenuItemBase {
   /**
    * Add a menu item to the beginning of this submenu.
    *
-   * ## Platform-spcific:
+   * ## Platform-specific:
    *
    * - **macOS:** Only {@linkcode Submenu}s can be added to a {@linkcode Menu}.
    */
@@ -451,7 +555,7 @@ var Submenu = class _Submenu extends MenuItemBase {
   /**
    * Add a menu item to the specified position in this submenu.
    *
-   * ## Platform-spcific:
+   * ## Platform-specific:
    *
    * - **macOS:** Only {@linkcode Submenu}s can be added to a {@linkcode Menu}.
    */
@@ -504,9 +608,10 @@ var Submenu = class _Submenu extends MenuItemBase {
   async popup(at, window2) {
     let atValue = null;
     if (at) {
-      atValue = {
-        type: at instanceof PhysicalPosition ? "Physical" : "Logical",
-        data: at
+      atValue = {};
+      atValue[`${at instanceof PhysicalPosition ? "Physical" : "Logical"}`] = {
+        x: at.x,
+        y: at.y
       };
     }
     return invoke("plugin:menu|popup", {
@@ -584,7 +689,7 @@ var Menu = class _Menu extends MenuItemBase {
   /**
    * Add a menu item to the end of this menu.
    *
-   * ## Platform-spcific:
+   * ## Platform-specific:
    *
    * - **macOS:** Only {@linkcode Submenu}s can be added to a {@linkcode Menu}.
    */
@@ -600,7 +705,7 @@ var Menu = class _Menu extends MenuItemBase {
   /**
    * Add a menu item to the beginning of this menu.
    *
-   * ## Platform-spcific:
+   * ## Platform-specific:
    *
    * - **macOS:** Only {@linkcode Submenu}s can be added to a {@linkcode Menu}.
    */
@@ -616,7 +721,7 @@ var Menu = class _Menu extends MenuItemBase {
   /**
    * Add a menu item to the specified position in this menu.
    *
-   * ## Platform-spcific:
+   * ## Platform-specific:
    *
    * - **macOS:** Only {@linkcode Submenu}s can be added to a {@linkcode Menu}.
    */
@@ -669,9 +774,10 @@ var Menu = class _Menu extends MenuItemBase {
   async popup(at, window2) {
     let atValue = null;
     if (at) {
-      atValue = {
-        type: at instanceof PhysicalPosition ? "Physical" : "Logical",
-        data: at
+      atValue = {};
+      atValue[`${at instanceof PhysicalPosition ? "Physical" : "Logical"}`] = {
+        x: at.x,
+        y: at.y
       };
     }
     return invoke("plugin:menu|popup", {

@@ -1,4 +1,7 @@
-//! Native system dialogs for opening and saving files.
+//! 
+//! Version: **dialog-v2.0.0-rc.0**
+//! 
+//! link to plugin: [tauri-plugin-dialog](https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/dialog)
 //!
 
 use js_sys::Array;

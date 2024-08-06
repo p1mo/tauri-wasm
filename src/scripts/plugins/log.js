@@ -59,16 +59,22 @@ async function debug(message, options) {
 async function trace(message, options) {
   await log(1 /* Trace */, message, options);
 }
-async function attachConsole() {
+async function attachLogger(fn) {
   return await listen("log://log", (event) => {
-    const payload = event.payload;
-    const message = payload.message.replace(
+    const { level } = event.payload;
+    let { message } = event.payload;
+    message = message.replace(
       // TODO: Investigate security/detect-unsafe-regex
       // eslint-disable-next-line no-control-regex, security/detect-unsafe-regex
       /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
       ""
     );
-    switch (payload.level) {
+    fn({ message, level });
+  });
+}
+async function attachConsole() {
+  return await attachLogger(({ level, message }) => {
+    switch (level) {
       case 1 /* Trace */:
         console.log(message);
         break;
@@ -85,12 +91,13 @@ async function attachConsole() {
         console.error(message);
         break;
       default:
-        throw new Error(`unknown log level ${payload.level}`);
+        throw new Error(`unknown log level ${level}`);
     }
   });
 }
 export {
   attachConsole,
+  attachLogger,
   debug,
   error,
   info,

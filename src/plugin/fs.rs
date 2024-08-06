@@ -1,25 +1,9 @@
-//! Access the file system.
+//! 
+//! Version: **fs-v2.0.0-rc.0**
+//! 
+//! link to plugin: [tauri-plugin-fs](https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/fs)
 //!
-//! The APIs must be added to `plugins.fs` in `tauri.conf.json`:
-//! ```json
-//! {
-//!   "plugins": {
-//!     "fs": {
-//!       "all": true, // enable all FS APIs
-//!       "readFile": true,
-//!       "writeFile": true,
-//!       "readDir": true,
-//!       "copyFile": true,
-//!       "createDir": true,
-//!       "removeDir": true,
-//!       "removeFile": true,
-//!       "renameFile": true,
-//!       "exists": true
-//!     }
-//!   }
-//! }
-//! ```
-//!
+
 use crate::Error;
 use js_sys::ArrayBuffer;
 use serde::{Deserialize, Serialize};

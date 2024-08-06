@@ -1,4 +1,8 @@
-//! Customize the auto updater flow.
+//! 
+//! Version: **updater-v2.0.0-rc.0**
+//! 
+//! link to plugin: [tauri-plugin-updater](https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/updater)
+//!
 
 use futures::{Stream, channel::mpsc};
 use serde::Deserialize;

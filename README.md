@@ -8,6 +8,11 @@
 
 ---
 
+### Important
+> in upcoming updates i will remove all js files out of this project you will need to enable `app.withGlobalTauri = true` inside your `tauri.conf.json`
+
+---
+
 <div align="center">
     <a href="https://p1mo.github.io/tauri-wasm/tauri_wasm">
         <img src="https://img.shields.io/badge/docs-main-6DA4AA">
@@ -17,7 +22,7 @@
 </div>
 
 <div align="center">
-    <img src="https://img.shields.io/badge/API_Version-2.0.0--beta--1-FE7A36">
+    <img src="https://img.shields.io/badge/API_Version-2.0.0--rc.0-FE7A36">
     <img src="https://img.shields.io/badge/tauri--wasm-unofficial-FE7A36">
     <a href="https://github.com/JonasKruckenberg/tauri-sys"><img src="https://img.shields.io/badge/tauri__sys-tauri_v1-65B741"></a>
 </div>
@@ -158,6 +163,16 @@ fn main() {
         </tr>
         <tr>
             <td align="center"><ul><li> [ ] </li></ul></td>
+            <td><code>webview_window</code></td>
+            <td align="center"><code>api</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
+            <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+            <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+        </tr>
+        <tr>
+            <td align="center"><ul><li> [ ] </li></ul></td>
             <td><code>webview</code></td>
             <td align="center"><code>api</code></td>
             <td align="center">
@@ -275,11 +290,31 @@ fn main() {
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
         </tr>
         <tr>
+            <td align="center"><ul><li> [ ] </li></ul></td>
+            <td><code>geolocation</code></td>
+            <td align="center"><code>plugin</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
+            </td>
+            <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+            <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+        </tr>
+        <tr>
             <td align="center"><ul><li> [x] </li></ul></td>
             <td><code>global-shortcut</code></td>
             <td align="center"><code>plugin</code></td>
             <td align="center">
                 <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
+            <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+            <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+        </tr>
+        <tr>
+            <td align="center"><ul><li> [ ] </li></ul></td>
+            <td><code>haptics</code></td>
+            <td align="center"><code>plugin</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Mobile-FE7A36">
             </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>

@@ -7,29 +7,29 @@ async function invoke(cmd, args = {}, options) {
 function eol() {
   return window.__TAURI_OS_PLUGIN_INTERNALS__.eol;
 }
-async function platform() {
-  return invoke("plugin:os|platform");
+function platform() {
+  return window.__TAURI_OS_PLUGIN_INTERNALS__.platform;
 }
-async function version() {
-  return invoke("plugin:os|version");
+function version() {
+  return window.__TAURI_OS_PLUGIN_INTERNALS__.version;
 }
-async function family() {
-  return invoke("plugin:os|family");
+function family() {
+  return window.__TAURI_OS_PLUGIN_INTERNALS__.family;
 }
-async function type() {
-  return invoke("plugin:os|os_type");
+function type() {
+  return window.__TAURI_OS_PLUGIN_INTERNALS__.os_type;
 }
-async function arch() {
-  return invoke("plugin:os|arch");
+function arch() {
+  return window.__TAURI_OS_PLUGIN_INTERNALS__.arch;
+}
+function exeExtension() {
+  return window.__TAURI_OS_PLUGIN_INTERNALS__.exe_extension;
 }
 async function locale() {
-  return invoke("plugin:os|locale");
-}
-async function exeExtension() {
-  return invoke("plugin:os|exe_extension");
+  return await invoke("plugin:os|locale");
 }
 async function hostname() {
-  return invoke("plugin:os|hostname");
+  return await invoke("plugin:os|hostname");
 }
 export {
   arch,

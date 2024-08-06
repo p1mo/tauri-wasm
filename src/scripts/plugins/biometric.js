@@ -12,10 +12,10 @@ var BiometryType = /* @__PURE__ */ ((BiometryType2) => {
   return BiometryType2;
 })(BiometryType || {});
 async function checkStatus() {
-  return invoke("plugin:biometric|status");
+  return await invoke("plugin:biometric|status");
 }
 async function authenticate(reason, options) {
-  return invoke("plugin:biometric|authenticate", {
+  await invoke("plugin:biometric|authenticate", {
     reason,
     ...options
   });

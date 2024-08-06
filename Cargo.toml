@@ -10,7 +10,7 @@ all-features = true
 
 [features]
 # Api
-all = [ "app", "core", "dpi", "event", "menu", "mocks", "path", "tray", "window" ]
+all = [ "app", "core", "dpi", "event", "menu", "mocks", "path", "tray", "webview-window", "webview", "window" ]
 app = [ "dep:semver"] 
 core = []
 dpi = []
@@ -19,6 +19,8 @@ menu = []
 mocks = []
 path = []
 tray = ["dep:url"]
+webview-window = ["dep:futures", "event"]
+webview = ["dep:futures", "event"]
 window = ["dep:futures", "event"]
 # Plugins
 plugin-all = [
@@ -31,7 +33,9 @@ plugin-all = [
     "deep-link",
     "dialog",
     "fs",
+    "geolocation",
     "global-shortcut",
+    "haptics",
     "http",
     "log",
     "nfc",
@@ -57,7 +61,9 @@ clipboard-manager = []
 deep-link = []
 dialog = []
 fs = []
+geolocation = []
 global-shortcut = []
+haptics = []
 http = []
 log = []
 nfc = []

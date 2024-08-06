@@ -1,5 +1,8 @@
-//! Send toast notifications (brief auto-expiring OS window element) to your user. Can also be used with the Notification Web API.
 //! 
+//! Version: **notification-v2.0.0-rc.0**
+//! 
+//! link to plugin: [tauri-plugin-notification](https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/notification)
+//!
 
 use serde::{Deserialize, Serialize};
 

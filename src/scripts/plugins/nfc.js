@@ -40,7 +40,7 @@ function record(format, kind, id, payload) {
 function textRecord(text, id, language = "en") {
   const payload = Array.from(new TextEncoder().encode(language + text));
   payload.unshift(language.length);
-  return record(1 /* NfcWellKnown */, RTD_TEXT, id || [], payload);
+  return record(1 /* NfcWellKnown */, RTD_TEXT, id ?? [], payload);
 }
 var protocols = [
   "",
@@ -83,11 +83,11 @@ var protocols = [
 function encodeURI(uri) {
   let prefix = "";
   protocols.slice(1).forEach(function(protocol) {
-    if ((!prefix || prefix === "urn:") && uri.indexOf(protocol) === 0) {
+    if ((prefix.length === 0 || prefix === "urn:") && uri.indexOf(protocol) === 0) {
       prefix = protocol;
     }
   });
-  if (!prefix) {
+  if (prefix.length === 0) {
     prefix = "";
   }
   const encoded = Array.from(
@@ -101,7 +101,7 @@ function uriRecord(uri, id) {
   return record(
     1 /* NfcWellKnown */,
     RTD_URI,
-    id || [],
+    id ?? [],
     encodeURI(uri)
   );
 }
@@ -116,11 +116,11 @@ async function scan(kind, options) {
   });
 }
 async function write(records, options) {
-  const { kind, ...opts } = options || {};
+  const { kind, ...opts } = options ?? {};
   if (kind) {
     opts.kind = mapScanKind(kind);
   }
-  return await invoke("plugin:nfc|write", {
+  await invoke("plugin:nfc|write", {
     records,
     ...opts
   });

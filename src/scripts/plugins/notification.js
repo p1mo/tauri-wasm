@@ -8,10 +8,34 @@ var Channel = class {
   __TAURI_CHANNEL_MARKER__ = true;
   #onmessage = () => {
   };
+  #nextMessageId = 0;
+  #pendingMessages = {};
   constructor() {
-    this.id = transformCallback((response) => {
-      this.#onmessage(response);
-    });
+    this.id = transformCallback(
+      ({ message, id }) => {
+        if (id === this.#nextMessageId) {
+          this.#nextMessageId = id + 1;
+          this.#onmessage(message);
+          const pendingMessageIds = Object.keys(this.#pendingMessages);
+          if (pendingMessageIds.length > 0) {
+            let nextId = id + 1;
+            for (const pendingId of pendingMessageIds.sort()) {
+              if (parseInt(pendingId) === nextId) {
+                const message2 = this.#pendingMessages[pendingId];
+                delete this.#pendingMessages[pendingId];
+                this.#onmessage(message2);
+                nextId += 1;
+              } else {
+                break;
+              }
+            }
+            this.#nextMessageId = nextId;
+          }
+        } else {
+          this.#pendingMessages[id.toString()] = message;
+        }
+      }
+    );
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -101,12 +125,12 @@ var Visibility = /* @__PURE__ */ ((Visibility2) => {
 })(Visibility || {});
 async function isPermissionGranted() {
   if (window.Notification.permission !== "default") {
-    return Promise.resolve(window.Notification.permission === "granted");
+    return await Promise.resolve(window.Notification.permission === "granted");
   }
-  return invoke("plugin:notification|is_permission_granted");
+  return await invoke("plugin:notification|is_permission_granted");
 }
 async function requestPermission() {
-  return window.Notification.requestPermission();
+  return await window.Notification.requestPermission();
 }
 function sendNotification(options) {
   if (typeof options === "string") {
@@ -116,40 +140,40 @@ function sendNotification(options) {
   }
 }
 async function registerActionTypes(types) {
-  return invoke("plugin:notification|register_action_types", { types });
+  await invoke("plugin:notification|register_action_types", { types });
 }
 async function pending() {
-  return invoke("plugin:notification|get_pending");
+  return await invoke("plugin:notification|get_pending");
 }
 async function cancel(notifications) {
-  return invoke("plugin:notification|cancel", { notifications });
+  await invoke("plugin:notification|cancel", { notifications });
 }
 async function cancelAll() {
-  return invoke("plugin:notification|cancel");
+  await invoke("plugin:notification|cancel");
 }
 async function active() {
-  return invoke("plugin:notification|get_active");
+  return await invoke("plugin:notification|get_active");
 }
 async function removeActive(notifications) {
-  return invoke("plugin:notification|remove_active", { notifications });
+  await invoke("plugin:notification|remove_active", { notifications });
 }
 async function removeAllActive() {
-  return invoke("plugin:notification|remove_active");
+  await invoke("plugin:notification|remove_active");
 }
 async function createChannel(channel) {
-  return invoke("plugin:notification|create_channel", { ...channel });
+  await invoke("plugin:notification|create_channel", { ...channel });
 }
 async function removeChannel(id) {
-  return invoke("plugin:notification|delete_channel", { id });
+  await invoke("plugin:notification|delete_channel", { id });
 }
 async function channels() {
-  return invoke("plugin:notification|listChannels");
+  return await invoke("plugin:notification|listChannels");
 }
 async function onNotificationReceived(cb) {
-  return addPluginListener("notification", "notification", cb);
+  return await addPluginListener("notification", "notification", cb);
 }
 async function onAction(cb) {
-  return addPluginListener("notification", "actionPerformed", cb);
+  return await addPluginListener("notification", "actionPerformed", cb);
 }
 export {
   Importance,

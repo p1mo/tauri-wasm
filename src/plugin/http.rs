@@ -1,6 +1,11 @@
-
+//! 
+//! Version: **http-v2.0.0-rc.0**
+//! 
+//! link to plugin: [tauri-plugin-http](https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/http)
+//!
 
 /// Configuration of a proxy that a Client should pass requests to.
+#[allow(dead_code)]
 pub struct Proxy {
     /// Proxy all traffic to the passed URL.
     all : Option<String>,
@@ -11,12 +16,14 @@ pub struct Proxy {
 }
 
 
+#[allow(dead_code)]
 pub struct BasicAuth {
     username: String,
     password: String,
 }
 
 
+#[allow(dead_code)]
 pub struct ProxyConfig {
     /// The URL of the proxy server.
     url: String,
@@ -29,6 +36,7 @@ pub struct ProxyConfig {
 
 
 /// Options to configure the Rust client used to make fetch requests
+#[allow(dead_code)]
 pub struct ClientOptions {
     /// Defines the maximum number of redirects the client should follow.
     /// If set to 0, no redirects will be followed.

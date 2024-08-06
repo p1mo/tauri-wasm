@@ -8,10 +8,34 @@ var Channel = class {
   __TAURI_CHANNEL_MARKER__ = true;
   #onmessage = () => {
   };
+  #nextMessageId = 0;
+  #pendingMessages = {};
   constructor() {
-    this.id = transformCallback((response) => {
-      this.#onmessage(response);
-    });
+    this.id = transformCallback(
+      ({ message, id }) => {
+        if (id === this.#nextMessageId) {
+          this.#nextMessageId = id + 1;
+          this.#onmessage(message);
+          const pendingMessageIds = Object.keys(this.#pendingMessages);
+          if (pendingMessageIds.length > 0) {
+            let nextId = id + 1;
+            for (const pendingId of pendingMessageIds.sort()) {
+              if (parseInt(pendingId) === nextId) {
+                const message2 = this.#pendingMessages[pendingId];
+                delete this.#pendingMessages[pendingId];
+                this.#onmessage(message2);
+                nextId += 1;
+              } else {
+                break;
+              }
+            }
+            this.#nextMessageId = nextId;
+          }
+        } else {
+          this.#pendingMessages[id.toString()] = message;
+        }
+      }
+    );
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -28,19 +52,6 @@ async function invoke(cmd, args = {}, options) {
 }
 
 // tauri-plugins/plugins/shell/guest-js/index.ts
-async function execute(onEventHandler, program, args = [], options) {
-  if (typeof args === "object") {
-    Object.freeze(args);
-  }
-  const onEvent = new Channel();
-  onEvent.onmessage = onEventHandler;
-  return invoke("plugin:shell|execute", {
-    program,
-    args,
-    options,
-    onEvent
-  });
-}
 var EventEmitter = class {
   constructor() {
     /** @ignore */
@@ -209,7 +220,7 @@ var Child = class {
    * @since 2.0.0
    */
   async write(data) {
-    return invoke("plugin:shell|stdin_write", {
+    await invoke("plugin:shell|stdin_write", {
       pid: this.pid,
       // correctly serialize Uint8Arrays
       buffer: typeof data === "string" ? data : Array.from(data)
@@ -223,7 +234,7 @@ var Child = class {
    * @since 2.0.0
    */
   async kill() {
-    return invoke("plugin:shell|kill", {
+    await invoke("plugin:shell|kill", {
       cmd: "killChild",
       pid: this.pid
     });
@@ -289,27 +300,35 @@ var Command = class _Command extends EventEmitter {
    * @since 2.0.0
    */
   async spawn() {
-    return execute(
-      (event) => {
-        switch (event.event) {
-          case "Error":
-            this.emit("error", event.payload);
-            break;
-          case "Terminated":
-            this.emit("close", event.payload);
-            break;
-          case "Stdout":
-            this.stdout.emit("data", event.payload);
-            break;
-          case "Stderr":
-            this.stderr.emit("data", event.payload);
-            break;
-        }
-      },
-      this.program,
-      this.args,
-      this.options
-    ).then((pid) => new Child(pid));
+    const program = this.program;
+    const args = this.args;
+    const options = this.options;
+    if (typeof args === "object") {
+      Object.freeze(args);
+    }
+    const onEvent = new Channel();
+    onEvent.onmessage = (event) => {
+      switch (event.event) {
+        case "Error":
+          this.emit("error", event.payload);
+          break;
+        case "Terminated":
+          this.emit("close", event.payload);
+          break;
+        case "Stdout":
+          this.stdout.emit("data", event.payload);
+          break;
+        case "Stderr":
+          this.stderr.emit("data", event.payload);
+          break;
+      }
+    };
+    return await invoke("plugin:shell|spawn", {
+      program,
+      args,
+      options,
+      onEvent
+    }).then((pid) => new Child(pid));
   }
   /**
    * Executes the command as a child process, waiting for it to finish and collecting all of its output.
@@ -328,40 +347,21 @@ var Command = class _Command extends EventEmitter {
    * @since 2.0.0
    */
   async execute() {
-    return new Promise((resolve, reject) => {
-      this.on("error", reject);
-      const stdout = [];
-      const stderr = [];
-      this.stdout.on("data", (line) => {
-        stdout.push(line);
-      });
-      this.stderr.on("data", (line) => {
-        stderr.push(line);
-      });
-      this.on("close", (payload) => {
-        resolve({
-          code: payload.code,
-          signal: payload.signal,
-          stdout: this.collectOutput(stdout),
-          stderr: this.collectOutput(stderr)
-        });
-      });
-      this.spawn().catch(reject);
-    });
-  }
-  /** @ignore */
-  collectOutput(events) {
-    if (this.options.encoding === "raw") {
-      return events.reduce((p, c) => {
-        return new Uint8Array([...p, ...c, 10]);
-      }, new Uint8Array());
-    } else {
-      return events.join("\n");
+    const program = this.program;
+    const args = this.args;
+    const options = this.options;
+    if (typeof args === "object") {
+      Object.freeze(args);
     }
+    return await invoke("plugin:shell|execute", {
+      program,
+      args,
+      options
+    });
   }
 };
 async function open(path, openWith) {
-  return invoke("plugin:shell|open", {
+  await invoke("plugin:shell|open", {
     path,
     with: openWith
   });
