@@ -1,4 +1,4 @@
-// tauri-v2/tooling/api/src/mocks.ts
+// tauri-v2/packages/api/src/mocks.ts
 function mockInternals() {
   window.__TAURI_INTERNALS__ = window.__TAURI_INTERNALS__ ?? {};
 }
@@ -20,19 +20,14 @@ function mockIPC(cb) {
     });
     return identifier;
   };
-  window.__TAURI_INTERNALS__.invoke = function(cmd, args, options) {
+  window.__TAURI_INTERNALS__.invoke = async function(cmd, args, options) {
     return cb(cmd, args);
   };
 }
-function mockWindows(current, ...additionalWindows) {
+function mockWindows(current, ..._additionalWindows) {
   mockInternals();
   window.__TAURI_INTERNALS__.metadata = {
-    windows: [current, ...additionalWindows].map((label) => ({ label })),
     currentWindow: { label: current },
-    webviews: [current, ...additionalWindows].map((label) => ({
-      windowLabel: label,
-      label
-    })),
     currentWebview: { windowLabel: current, label: current }
   };
 }

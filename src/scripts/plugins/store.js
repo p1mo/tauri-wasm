@@ -1,12 +1,86 @@
-// tauri-v2/tooling/api/src/core.ts
+// tauri-v2/packages/api/src/core.ts
+var SERIALIZE_TO_IPC_FN = "__TAURI_TO_IPC_KEY__";
 function transformCallback(callback, once = false) {
   return window.__TAURI_INTERNALS__.transformCallback(callback, once);
 }
+var Channel = class {
+  /** The callback id returned from {@linkcode transformCallback} */
+  id;
+  #onmessage;
+  // the index is used as a mechanism to preserve message order
+  #nextMessageIndex = 0;
+  #pendingMessages = [];
+  #messageEndIndex;
+  constructor(onmessage) {
+    this.#onmessage = onmessage || (() => {
+    });
+    this.id = transformCallback((rawMessage) => {
+      const index = rawMessage.index;
+      if ("end" in rawMessage) {
+        if (index == this.#nextMessageIndex) {
+          this.cleanupCallback();
+        } else {
+          this.#messageEndIndex = index;
+        }
+        return;
+      }
+      const message = rawMessage.message;
+      if (index == this.#nextMessageIndex) {
+        this.#onmessage(message);
+        this.#nextMessageIndex += 1;
+        while (this.#nextMessageIndex in this.#pendingMessages) {
+          const message2 = this.#pendingMessages[this.#nextMessageIndex];
+          this.#onmessage(message2);
+          delete this.#pendingMessages[this.#nextMessageIndex];
+          this.#nextMessageIndex += 1;
+        }
+        if (this.#nextMessageIndex === this.#messageEndIndex) {
+          this.cleanupCallback();
+        }
+      } else {
+        this.#pendingMessages[index] = message;
+      }
+    });
+  }
+  cleanupCallback() {
+    Reflect.deleteProperty(window, `_${this.id}`);
+  }
+  set onmessage(handler) {
+    this.#onmessage = handler;
+  }
+  get onmessage() {
+    return this.#onmessage;
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return `__CHANNEL__:${this.id}`;
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
 async function invoke(cmd, args = {}, options) {
   return window.__TAURI_INTERNALS__.invoke(cmd, args, options);
 }
+var Resource = class {
+  #rid;
+  get rid() {
+    return this.#rid;
+  }
+  constructor(rid) {
+    this.#rid = rid;
+  }
+  /**
+   * Destroys and cleans up this resource from memory.
+   * **You should not call any method on this object anymore and should drop any reference to it.**
+   */
+  async close() {
+    return invoke("plugin:resources|close", {
+      rid: this.rid
+    });
+  }
+};
 
-// tauri-v2/tooling/api/src/event.ts
+// tauri-v2/packages/api/src/event.ts
 async function _unlisten(event, eventId) {
   await invoke("plugin:event|unlisten", {
     event,
@@ -25,177 +99,200 @@ async function listen(event, handler, options) {
 }
 
 // tauri-plugins/plugins/store/guest-js/index.ts
-var Store = class {
-  constructor(path) {
+async function load(path, options) {
+  return await Store.load(path, options);
+}
+async function getStore(path) {
+  return await Store.get(path);
+}
+var LazyStore = class {
+  /**
+   * Note that the options are not applied if someone else already created the store
+   * @param path Path to save the store in `app_data_dir`
+   * @param options Store configuration options
+   */
+  constructor(path, options) {
     this.path = path;
+    this.options = options;
+  }
+  get store() {
+    if (!this._store) {
+      this._store = load(this.path, this.options);
+    }
+    return this._store;
   }
   /**
-   * Inserts a key-value pair into the store.
-   *
-   * @param key
-   * @param value
-   * @returns
+   * Init/load the store if it's not loaded already
    */
+  async init() {
+    await this.store;
+  }
+  async set(key, value) {
+    return (await this.store).set(key, value);
+  }
+  async get(key) {
+    return (await this.store).get(key);
+  }
+  async has(key) {
+    return (await this.store).has(key);
+  }
+  async delete(key) {
+    return (await this.store).delete(key);
+  }
+  async clear() {
+    await (await this.store).clear();
+  }
+  async reset() {
+    await (await this.store).reset();
+  }
+  async keys() {
+    return (await this.store).keys();
+  }
+  async values() {
+    return (await this.store).values();
+  }
+  async entries() {
+    return (await this.store).entries();
+  }
+  async length() {
+    return (await this.store).length();
+  }
+  async reload() {
+    await (await this.store).reload();
+  }
+  async save() {
+    await (await this.store).save();
+  }
+  async onKeyChange(key, cb) {
+    return (await this.store).onKeyChange(key, cb);
+  }
+  async onChange(cb) {
+    return (await this.store).onChange(cb);
+  }
+  async close() {
+    if (this._store) {
+      await (await this._store).close();
+    }
+  }
+};
+var Store = class _Store extends Resource {
+  constructor(rid) {
+    super(rid);
+  }
+  /**
+   * Create a new Store or load the existing store with the path.
+   *
+   * @example
+   * ```typescript
+   * import { Store } from '@tauri-apps/api/store';
+   * const store = await Store.load('store.json');
+   * ```
+   *
+   * @param path Path to save the store in `app_data_dir`
+   * @param options Store configuration options
+   */
+  static async load(path, options) {
+    const rid = await invoke("plugin:store|load", {
+      path,
+      ...options
+    });
+    return new _Store(rid);
+  }
+  /**
+   * Gets an already loaded store.
+   *
+   * If the store is not loaded, returns `null`. In this case you must {@link Store.load load} it.
+   *
+   * This function is more useful when you already know the store is loaded
+   * and just need to access its instance. Prefer {@link Store.load} otherwise.
+   *
+   * @example
+   * ```typescript
+   * import { Store } from '@tauri-apps/api/store';
+   * let store = await Store.get('store.json');
+   * if (!store) {
+   *   store = await Store.load('store.json');
+   * }
+   * ```
+   *
+   * @param path Path of the store.
+   */
+  static async get(path) {
+    return await invoke("plugin:store|get_store", { path }).then(
+      (rid) => rid ? new _Store(rid) : null
+    );
+  }
   async set(key, value) {
     await invoke("plugin:store|set", {
-      path: this.path,
+      rid: this.rid,
       key,
       value
     });
   }
-  /**
-   * Returns the value for the given `key` or `null` the key does not exist.
-   *
-   * @param key
-   * @returns
-   */
   async get(key) {
-    return await invoke("plugin:store|get", {
-      path: this.path,
+    const [value, exists] = await invoke("plugin:store|get", {
+      rid: this.rid,
       key
     });
+    return exists ? value : void 0;
   }
-  /**
-   * Returns `true` if the given `key` exists in the store.
-   *
-   * @param key
-   * @returns
-   */
   async has(key) {
     return await invoke("plugin:store|has", {
-      path: this.path,
+      rid: this.rid,
       key
     });
   }
-  /**
-   * Removes a key-value pair from the store.
-   *
-   * @param key
-   * @returns
-   */
   async delete(key) {
     return await invoke("plugin:store|delete", {
-      path: this.path,
+      rid: this.rid,
       key
     });
   }
-  /**
-   * Clears the store, removing all key-value pairs.
-   *
-   * Note: To clear the storage and reset it to it's `default` value, use `reset` instead.
-   * @returns
-   */
   async clear() {
-    await invoke("plugin:store|clear", {
-      path: this.path
-    });
+    await invoke("plugin:store|clear", { rid: this.rid });
   }
-  /**
-   * Resets the store to it's `default` value.
-   *
-   * If no default value has been set, this method behaves identical to `clear`.
-   * @returns
-   */
   async reset() {
-    await invoke("plugin:store|reset", {
-      path: this.path
-    });
+    await invoke("plugin:store|reset", { rid: this.rid });
   }
-  /**
-   * Returns a list of all key in the store.
-   *
-   * @returns
-   */
   async keys() {
-    return await invoke("plugin:store|keys", {
-      path: this.path
-    });
+    return await invoke("plugin:store|keys", { rid: this.rid });
   }
-  /**
-   * Returns a list of all values in the store.
-   *
-   * @returns
-   */
   async values() {
-    return await invoke("plugin:store|values", {
-      path: this.path
-    });
+    return await invoke("plugin:store|values", { rid: this.rid });
   }
-  /**
-   * Returns a list of all entries in the store.
-   *
-   * @returns
-   */
   async entries() {
-    return await invoke("plugin:store|entries", {
-      path: this.path
-    });
+    return await invoke("plugin:store|entries", { rid: this.rid });
   }
-  /**
-   * Returns the number of key-value pairs in the store.
-   *
-   * @returns
-   */
   async length() {
-    return await invoke("plugin:store|length", {
-      path: this.path
-    });
+    return await invoke("plugin:store|length", { rid: this.rid });
   }
-  /**
-   * Attempts to load the on-disk state at the stores `path` into memory.
-   *
-   * This method is useful if the on-disk state was edited by the user and you want to synchronize the changes.
-   *
-   * Note: This method does not emit change events.
-   * @returns
-   */
-  async load() {
-    await invoke("plugin:store|load", {
-      path: this.path
-    });
+  async reload() {
+    await invoke("plugin:store|reload", { rid: this.rid });
   }
-  /**
-   * Saves the store to disk at the stores `path`.
-   *
-   * As the store is only persisted to disk before the apps exit, changes might be lost in a crash.
-   * This method lets you persist the store to disk whenever you deem necessary.
-   * @returns
-   */
   async save() {
-    await invoke("plugin:store|save", {
-      path: this.path
-    });
+    await invoke("plugin:store|save", { rid: this.rid });
   }
-  /**
-   * Listen to changes on a store key.
-   * @param key
-   * @param cb
-   * @returns A promise resolving to a function to unlisten to the event.
-   *
-   * @since 2.0.0
-   */
   async onKeyChange(key, cb) {
     return await listen("store://change", (event) => {
-      if (event.payload.path === this.path && event.payload.key === key) {
-        cb(event.payload.value);
+      if (event.payload.resourceId === this.rid && event.payload.key === key) {
+        cb(event.payload.exists ? event.payload.value : void 0);
       }
     });
   }
-  /**
-   * Listen to changes on the store.
-   * @param cb
-   * @returns A promise resolving to a function to unlisten to the event.
-   *
-   * @since 2.0.0
-   */
   async onChange(cb) {
     return await listen("store://change", (event) => {
-      if (event.payload.path === this.path) {
-        cb(event.payload.key, event.payload.value);
+      if (event.payload.resourceId === this.rid) {
+        cb(
+          event.payload.key,
+          event.payload.exists ? event.payload.value : void 0
+        );
       }
     });
   }
 };
 export {
-  Store
+  LazyStore,
+  Store,
+  getStore,
+  load
 };

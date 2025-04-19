@@ -1,4 +1,63 @@
-// tauri-v2/tooling/api/src/core.ts
+// tauri-v2/packages/api/src/core.ts
+var SERIALIZE_TO_IPC_FN = "__TAURI_TO_IPC_KEY__";
+function transformCallback(callback, once = false) {
+  return window.__TAURI_INTERNALS__.transformCallback(callback, once);
+}
+var Channel = class {
+  /** The callback id returned from {@linkcode transformCallback} */
+  id;
+  #onmessage;
+  // the index is used as a mechanism to preserve message order
+  #nextMessageIndex = 0;
+  #pendingMessages = [];
+  #messageEndIndex;
+  constructor(onmessage) {
+    this.#onmessage = onmessage || (() => {
+    });
+    this.id = transformCallback((rawMessage) => {
+      const index = rawMessage.index;
+      if ("end" in rawMessage) {
+        if (index == this.#nextMessageIndex) {
+          this.cleanupCallback();
+        } else {
+          this.#messageEndIndex = index;
+        }
+        return;
+      }
+      const message2 = rawMessage.message;
+      if (index == this.#nextMessageIndex) {
+        this.#onmessage(message2);
+        this.#nextMessageIndex += 1;
+        while (this.#nextMessageIndex in this.#pendingMessages) {
+          const message3 = this.#pendingMessages[this.#nextMessageIndex];
+          this.#onmessage(message3);
+          delete this.#pendingMessages[this.#nextMessageIndex];
+          this.#nextMessageIndex += 1;
+        }
+        if (this.#nextMessageIndex === this.#messageEndIndex) {
+          this.cleanupCallback();
+        }
+      } else {
+        this.#pendingMessages[index] = message2;
+      }
+    });
+  }
+  cleanupCallback() {
+    Reflect.deleteProperty(window, `_${this.id}`);
+  }
+  set onmessage(handler) {
+    this.#onmessage = handler;
+  }
+  get onmessage() {
+    return this.#onmessage;
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return `__CHANNEL__:${this.id}`;
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
 async function invoke(cmd, args = {}, options) {
   return window.__TAURI_INTERNALS__.invoke(cmd, args, options);
 }
@@ -31,8 +90,8 @@ async function ask(message2, options) {
     message: message2.toString(),
     title: opts?.title?.toString(),
     kind: opts?.kind,
-    okButtonLabel: opts?.okLabel?.toString() ?? "Yes",
-    cancelButtonLabel: opts?.cancelLabel?.toString() ?? "No"
+    yesButtonLabel: opts?.okLabel?.toString(),
+    noButtonLabel: opts?.cancelLabel?.toString()
   });
 }
 async function confirm(message2, options) {
@@ -41,8 +100,8 @@ async function confirm(message2, options) {
     message: message2.toString(),
     title: opts?.title?.toString(),
     kind: opts?.kind,
-    okButtonLabel: opts?.okLabel?.toString() ?? "Ok",
-    cancelButtonLabel: opts?.cancelLabel?.toString() ?? "Cancel"
+    okButtonLabel: opts?.okLabel?.toString(),
+    cancelButtonLabel: opts?.cancelLabel?.toString()
   });
 }
 export {

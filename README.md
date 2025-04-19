@@ -22,7 +22,7 @@
 </div>
 
 <div align="center">
-    <img src="https://img.shields.io/badge/API_Version-2.0.0--rc.0-FE7A36">
+    <img src="https://img.shields.io/badge/API_Version-2.5.0-FE7A36">
     <img src="https://img.shields.io/badge/tauri--wasm-unofficial-FE7A36">
     <a href="https://github.com/JonasKruckenberg/tauri-sys"><img src="https://img.shields.io/badge/tauri__sys-tauri_v1-65B741"></a>
 </div>
@@ -31,7 +31,7 @@
 
 ```toml
 [dependencies]
-tauri-wasm = { git = "https://github.com/p1mo/tauri-wasm", features = [
+tauri-wasm = { git = "https://github.com/p1mo/tauri-wasm", tag = "v0.1.0-dev", features = [
         "all", # for all api bindings
         "plugin-all" # for all plugin bindings. should you do this? no.
 ] }

@@ -1,41 +1,49 @@
-// tauri-v2/tooling/api/src/core.ts
+// tauri-v2/packages/api/src/core.ts
+var SERIALIZE_TO_IPC_FN = "__TAURI_TO_IPC_KEY__";
 function transformCallback(callback, once = false) {
   return window.__TAURI_INTERNALS__.transformCallback(callback, once);
 }
 var Channel = class {
+  /** The callback id returned from {@linkcode transformCallback} */
   id;
-  // @ts-expect-error field used by the IPC serializer
-  __TAURI_CHANNEL_MARKER__ = true;
-  #onmessage = () => {
-  };
-  #nextMessageId = 0;
-  #pendingMessages = {};
-  constructor() {
-    this.id = transformCallback(
-      ({ message, id }) => {
-        if (id === this.#nextMessageId) {
-          this.#nextMessageId = id + 1;
-          this.#onmessage(message);
-          const pendingMessageIds = Object.keys(this.#pendingMessages);
-          if (pendingMessageIds.length > 0) {
-            let nextId = id + 1;
-            for (const pendingId of pendingMessageIds.sort()) {
-              if (parseInt(pendingId) === nextId) {
-                const message2 = this.#pendingMessages[pendingId];
-                delete this.#pendingMessages[pendingId];
-                this.#onmessage(message2);
-                nextId += 1;
-              } else {
-                break;
-              }
-            }
-            this.#nextMessageId = nextId;
-          }
+  #onmessage;
+  // the index is used as a mechanism to preserve message order
+  #nextMessageIndex = 0;
+  #pendingMessages = [];
+  #messageEndIndex;
+  constructor(onmessage) {
+    this.#onmessage = onmessage || (() => {
+    });
+    this.id = transformCallback((rawMessage) => {
+      const index = rawMessage.index;
+      if ("end" in rawMessage) {
+        if (index == this.#nextMessageIndex) {
+          this.cleanupCallback();
         } else {
-          this.#pendingMessages[id.toString()] = message;
+          this.#messageEndIndex = index;
         }
+        return;
       }
-    );
+      const message = rawMessage.message;
+      if (index == this.#nextMessageIndex) {
+        this.#onmessage(message);
+        this.#nextMessageIndex += 1;
+        while (this.#nextMessageIndex in this.#pendingMessages) {
+          const message2 = this.#pendingMessages[this.#nextMessageIndex];
+          this.#onmessage(message2);
+          delete this.#pendingMessages[this.#nextMessageIndex];
+          this.#nextMessageIndex += 1;
+        }
+        if (this.#nextMessageIndex === this.#messageEndIndex) {
+          this.cleanupCallback();
+        }
+      } else {
+        this.#pendingMessages[index] = message;
+      }
+    });
+  }
+  cleanupCallback() {
+    Reflect.deleteProperty(window, `_${this.id}`);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -43,8 +51,11 @@ var Channel = class {
   get onmessage() {
     return this.#onmessage;
   }
-  toJSON() {
+  [SERIALIZE_TO_IPC_FN]() {
     return `__CHANNEL__:${this.id}`;
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
   }
 };
 async function invoke(cmd, args = {}, options) {
@@ -68,7 +79,7 @@ async function upload(url, filePath, progressHandler, headers) {
     onProgress
   });
 }
-async function download(url, filePath, progressHandler, headers) {
+async function download(url, filePath, progressHandler, headers, body) {
   const ids = new Uint32Array(1);
   window.crypto.getRandomValues(ids);
   const id = ids[0];
@@ -81,7 +92,8 @@ async function download(url, filePath, progressHandler, headers) {
     url,
     filePath,
     headers: headers ?? {},
-    onProgress
+    onProgress,
+    body
   });
 }
 export {

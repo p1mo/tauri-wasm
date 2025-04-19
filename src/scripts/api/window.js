@@ -1,65 +1,61 @@
-// tauri-v2/tooling/api/src/dpi.ts
-var LogicalSize = class {
-  constructor(width, height) {
-    this.type = "Logical";
-    this.width = width;
-    this.height = height;
-  }
-};
-var PhysicalSize = class {
-  constructor(width, height) {
-    this.type = "Physical";
-    this.width = width;
-    this.height = height;
-  }
-  /**
-   * Converts the physical size to a logical one.
-   * @example
-   * ```typescript
-   * import { getCurrentWindow } from '@tauri-apps/api/window';
-   * const appWindow = getCurrentWindow();
-   * const factor = await appWindow.scaleFactor();
-   * const size = await appWindow.innerSize();
-   * const logical = size.toLogical(factor);
-   * ```
-   *  */
-  toLogical(scaleFactor) {
-    return new LogicalSize(this.width / scaleFactor, this.height / scaleFactor);
-  }
-};
-var LogicalPosition = class {
-  constructor(x, y) {
-    this.type = "Logical";
-    this.x = x;
-    this.y = y;
-  }
-};
-var PhysicalPosition = class {
-  constructor(x, y) {
-    this.type = "Physical";
-    this.x = x;
-    this.y = y;
-  }
-  /**
-   * Converts the physical position to a logical one.
-   * @example
-   * ```typescript
-   * import { getCurrentWindow } from '@tauri-apps/api/window';
-   * const appWindow = getCurrentWindow();
-   * const factor = await appWindow.scaleFactor();
-   * const position = await appWindow.innerPosition();
-   * const logical = position.toLogical(factor);
-   * ```
-   * */
-  toLogical(scaleFactor) {
-    return new LogicalPosition(this.x / scaleFactor, this.y / scaleFactor);
-  }
-};
-
-// tauri-v2/tooling/api/src/core.ts
+// tauri-v2/packages/api/src/core.ts
+var SERIALIZE_TO_IPC_FN = "__TAURI_TO_IPC_KEY__";
 function transformCallback(callback, once2 = false) {
   return window.__TAURI_INTERNALS__.transformCallback(callback, once2);
 }
+var Channel = class {
+  #onmessage;
+  // the index is used as a mechanism to preserve message order
+  #nextMessageIndex = 0;
+  #pendingMessages = [];
+  #messageEndIndex;
+  constructor(onmessage) {
+    this.#onmessage = onmessage || (() => {
+    });
+    this.id = transformCallback((rawMessage) => {
+      const index = rawMessage.index;
+      if ("end" in rawMessage) {
+        if (index == this.#nextMessageIndex) {
+          this.cleanupCallback();
+        } else {
+          this.#messageEndIndex = index;
+        }
+        return;
+      }
+      const message = rawMessage.message;
+      if (index == this.#nextMessageIndex) {
+        this.#onmessage(message);
+        this.#nextMessageIndex += 1;
+        while (this.#nextMessageIndex in this.#pendingMessages) {
+          const message2 = this.#pendingMessages[this.#nextMessageIndex];
+          this.#onmessage(message2);
+          delete this.#pendingMessages[this.#nextMessageIndex];
+          this.#nextMessageIndex += 1;
+        }
+        if (this.#nextMessageIndex === this.#messageEndIndex) {
+          this.cleanupCallback();
+        }
+      } else {
+        this.#pendingMessages[index] = message;
+      }
+    });
+  }
+  cleanupCallback() {
+    Reflect.deleteProperty(window, `_${this.id}`);
+  }
+  set onmessage(handler) {
+    this.#onmessage = handler;
+  }
+  get onmessage() {
+    return this.#onmessage;
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return `__CHANNEL__:${this.id}`;
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
 async function invoke(cmd, args = {}, options) {
   return window.__TAURI_INTERNALS__.invoke(cmd, args, options);
 }
@@ -82,7 +78,225 @@ var Resource = class {
   }
 };
 
-// tauri-v2/tooling/api/src/event.ts
+// tauri-v2/packages/api/src/dpi.ts
+var LogicalSize = class {
+  constructor(...args) {
+    this.type = "Logical";
+    if (args.length === 1) {
+      if ("Logical" in args[0]) {
+        this.width = args[0].Logical.width;
+        this.height = args[0].Logical.height;
+      } else {
+        this.width = args[0].width;
+        this.height = args[0].height;
+      }
+    } else {
+      this.width = args[0];
+      this.height = args[1];
+    }
+  }
+  /**
+   * Converts the logical size to a physical one.
+   * @example
+   * ```typescript
+   * import { LogicalSize } from '@tauri-apps/api/dpi';
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   *
+   * const appWindow = getCurrentWindow();
+   * const factor = await appWindow.scaleFactor();
+   * const size = new LogicalSize(400, 500);
+   * const physical = size.toPhysical(factor);
+   * ```
+   *
+   * @since 2.0.0
+   */
+  toPhysical(scaleFactor) {
+    return new PhysicalSize(this.width * scaleFactor, this.height * scaleFactor);
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return {
+      width: this.width,
+      height: this.height
+    };
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
+var PhysicalSize = class {
+  constructor(...args) {
+    this.type = "Physical";
+    if (args.length === 1) {
+      if ("Physical" in args[0]) {
+        this.width = args[0].Physical.width;
+        this.height = args[0].Physical.height;
+      } else {
+        this.width = args[0].width;
+        this.height = args[0].height;
+      }
+    } else {
+      this.width = args[0];
+      this.height = args[1];
+    }
+  }
+  /**
+   * Converts the physical size to a logical one.
+   * @example
+   * ```typescript
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   * const appWindow = getCurrentWindow();
+   * const factor = await appWindow.scaleFactor();
+   * const size = await appWindow.innerSize(); // PhysicalSize
+   * const logical = size.toLogical(factor);
+   * ```
+   */
+  toLogical(scaleFactor) {
+    return new LogicalSize(this.width / scaleFactor, this.height / scaleFactor);
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return {
+      width: this.width,
+      height: this.height
+    };
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
+var Size = class {
+  constructor(size) {
+    this.size = size;
+  }
+  toLogical(scaleFactor) {
+    return this.size instanceof LogicalSize ? this.size : this.size.toLogical(scaleFactor);
+  }
+  toPhysical(scaleFactor) {
+    return this.size instanceof PhysicalSize ? this.size : this.size.toPhysical(scaleFactor);
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return {
+      [`${this.size.type}`]: {
+        width: this.size.width,
+        height: this.size.height
+      }
+    };
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
+var LogicalPosition = class {
+  constructor(...args) {
+    this.type = "Logical";
+    if (args.length === 1) {
+      if ("Logical" in args[0]) {
+        this.x = args[0].Logical.x;
+        this.y = args[0].Logical.y;
+      } else {
+        this.x = args[0].x;
+        this.y = args[0].y;
+      }
+    } else {
+      this.x = args[0];
+      this.y = args[1];
+    }
+  }
+  /**
+   * Converts the logical position to a physical one.
+   * @example
+   * ```typescript
+   * import { LogicalPosition } from '@tauri-apps/api/dpi';
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   *
+   * const appWindow = getCurrentWindow();
+   * const factor = await appWindow.scaleFactor();
+   * const position = new LogicalPosition(400, 500);
+   * const physical = position.toPhysical(factor);
+   * ```
+   *
+   * @since 2.0.0
+   */
+  toPhysical(scaleFactor) {
+    return new PhysicalPosition(this.x * scaleFactor, this.y * scaleFactor);
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return {
+      x: this.x,
+      y: this.y
+    };
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
+var PhysicalPosition = class {
+  constructor(...args) {
+    this.type = "Physical";
+    if (args.length === 1) {
+      if ("Physical" in args[0]) {
+        this.x = args[0].Physical.x;
+        this.y = args[0].Physical.y;
+      } else {
+        this.x = args[0].x;
+        this.y = args[0].y;
+      }
+    } else {
+      this.x = args[0];
+      this.y = args[1];
+    }
+  }
+  /**
+   * Converts the physical position to a logical one.
+   * @example
+   * ```typescript
+   * import { PhysicalPosition } from '@tauri-apps/api/dpi';
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   *
+   * const appWindow = getCurrentWindow();
+   * const factor = await appWindow.scaleFactor();
+   * const position = new PhysicalPosition(400, 500);
+   * const physical = position.toLogical(factor);
+   * ```
+   *
+   * @since 2.0.0
+   */
+  toLogical(scaleFactor) {
+    return new LogicalPosition(this.x / scaleFactor, this.y / scaleFactor);
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return {
+      x: this.x,
+      y: this.y
+    };
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
+var Position = class {
+  constructor(position) {
+    this.position = position;
+  }
+  toLogical(scaleFactor) {
+    return this.position instanceof LogicalPosition ? this.position : this.position.toLogical(scaleFactor);
+  }
+  toPhysical(scaleFactor) {
+    return this.position instanceof PhysicalPosition ? this.position : this.position.toPhysical(scaleFactor);
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return {
+      [`${this.position.type}`]: {
+        x: this.position.x,
+        y: this.position.y
+      }
+    };
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
+
+// tauri-v2/packages/api/src/event.ts
 async function _unlisten(event, eventId) {
   await invoke("plugin:event|unlisten", {
     event,
@@ -124,7 +338,7 @@ async function emitTo(target, event, payload) {
   });
 }
 
-// tauri-v2/tooling/api/src/image.ts
+// tauri-v2/packages/api/src/image.ts
 var Image = class _Image extends Resource {
   /**
    * Creates an Image from a resource ID. For internal use only.
@@ -189,11 +403,11 @@ var Image = class _Image extends Resource {
   }
 };
 function transformImage(image) {
-  const ret = image == null ? null : typeof image === "string" ? image : image instanceof Uint8Array ? Array.from(image) : image instanceof ArrayBuffer ? Array.from(new Uint8Array(image)) : image instanceof Image ? image.rid : image;
+  const ret = image == null ? null : typeof image === "string" ? image : image instanceof Image ? image.rid : image;
   return ret;
 }
 
-// tauri-v2/tooling/api/src/window.ts
+// tauri-v2/packages/api/src/window.ts
 var UserAttentionType = /* @__PURE__ */ ((UserAttentionType2) => {
   UserAttentionType2[UserAttentionType2["Critical"] = 1] = "Critical";
   UserAttentionType2[UserAttentionType2["Informational"] = 2] = "Informational";
@@ -226,12 +440,14 @@ function getCurrentWindow() {
     skip: true
   });
 }
-function getAllWindows() {
-  return window.__TAURI_INTERNALS__.metadata.windows.map(
-    (w) => new Window(w.label, {
-      // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor
-      skip: true
-    })
+async function getAllWindows() {
+  return invoke("plugin:window|get_all_windows").then(
+    (windows) => windows.map(
+      (w) => new Window(w, {
+        // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor
+        skip: true
+      })
+    )
   );
 }
 var localTauriEvents = ["tauri://created", "tauri://error"];
@@ -277,8 +493,8 @@ var Window = class {
    * @param label The window label.
    * @returns The Window instance to communicate with the window or null if the window doesn't exist.
    */
-  static getByLabel(label) {
-    return getAllWindows().find((w) => w.label === label) ?? null;
+  static async getByLabel(label) {
+    return (await getAllWindows()).find((w) => w.label === label) ?? null;
   }
   /**
    * Get an instance of `Window` for the current window.
@@ -289,7 +505,7 @@ var Window = class {
   /**
    * Gets a list of instances of `Window` for all available windows.
    */
-  static getAll() {
+  static async getAll() {
     return getAllWindows();
   }
   /**
@@ -303,7 +519,7 @@ var Window = class {
    * @returns The Window instance or `undefined` if there is not any focused window.
    */
   static async getFocusedWindow() {
-    for (const w of getAllWindows()) {
+    for (const w of await getAllWindows()) {
       if (await w.isFocused()) {
         return w;
       }
@@ -460,7 +676,7 @@ var Window = class {
   async innerPosition() {
     return invoke("plugin:window|inner_position", {
       label: this.label
-    }).then(({ x, y }) => new PhysicalPosition(x, y));
+    }).then((p) => new PhysicalPosition(p));
   }
   /**
    * The position of the top-left hand corner of the window relative to the top-left hand corner of the desktop.
@@ -475,7 +691,7 @@ var Window = class {
   async outerPosition() {
     return invoke("plugin:window|outer_position", {
       label: this.label
-    }).then(({ x, y }) => new PhysicalPosition(x, y));
+    }).then((p) => new PhysicalPosition(p));
   }
   /**
    * The physical size of the window's client area.
@@ -494,7 +710,7 @@ var Window = class {
       {
         label: this.label
       }
-    ).then(({ width, height }) => new PhysicalSize(width, height));
+    ).then((s) => new PhysicalSize(s));
   }
   /**
    * The physical size of the entire window.
@@ -513,7 +729,7 @@ var Window = class {
       {
         label: this.label
       }
-    ).then(({ width, height }) => new PhysicalSize(width, height));
+    ).then((s) => new PhysicalSize(s));
   }
   /**
    * Gets the window's current fullscreen state.
@@ -711,6 +927,21 @@ var Window = class {
       label: this.label
     });
   }
+  /**
+   * Whether the window is configured to be always on top of other windows or not.
+   * @example
+   * ```typescript
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   * const alwaysOnTop = await getCurrentWindow().isAlwaysOnTop();
+   * ```
+   *
+   * @returns Whether the window is visible or not.
+   */
+  async isAlwaysOnTop() {
+    return invoke("plugin:window|is_always_on_top", {
+      label: this.label
+    });
+  }
   // Setters
   /**
    * Centers the window.
@@ -775,6 +1006,41 @@ var Window = class {
     return invoke("plugin:window|set_resizable", {
       label: this.label,
       value: resizable
+    });
+  }
+  /**
+   * Enable or disable the window.
+   * @example
+   * ```typescript
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   * await getCurrentWindow().setEnabled(false);
+   * ```
+   *
+   * @returns A promise indicating the success or failure of the operation.
+   *
+   * @since 2.0.0
+   */
+  async setEnabled(enabled) {
+    return invoke("plugin:window|set_enabled", {
+      label: this.label,
+      value: enabled
+    });
+  }
+  /**
+   * Whether the window is enabled or disabled.
+   * @example
+   * ```typescript
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   * await getCurrentWindow().setEnabled(false);
+   * ```
+   *
+   * @returns A promise indicating the success or failure of the operation.
+   *
+   * @since 2.0.0
+   */
+  async isEnabled() {
+    return invoke("plugin:window|is_enabled", {
+      label: this.label
     });
   }
   /**
@@ -1021,7 +1287,7 @@ var Window = class {
    *
    * - **Windows:**
    *   - `false` has no effect on decorated window, shadows are always ON.
-   *   - `true` will make ndecorated window have a 1px white border,
+   *   - `true` will make undecorated window have a 1px white border,
    * and on Windows 11, it will have a rounded corners.
    * - **Linux:** Unsupported.
    *
@@ -1119,19 +1385,9 @@ var Window = class {
    * @returns A promise indicating the success or failure of the operation.
    */
   async setSize(size) {
-    if (!size || size.type !== "Logical" && size.type !== "Physical") {
-      throw new Error(
-        "the `size` argument must be either a LogicalSize or a PhysicalSize instance"
-      );
-    }
-    const value = {};
-    value[`${size.type}`] = {
-      width: size.width,
-      height: size.height
-    };
     return invoke("plugin:window|set_size", {
       label: this.label,
-      value
+      value: size instanceof Size ? size : new Size(size)
     });
   }
   /**
@@ -1146,22 +1402,9 @@ var Window = class {
    * @returns A promise indicating the success or failure of the operation.
    */
   async setMinSize(size) {
-    if (size && size.type !== "Logical" && size.type !== "Physical") {
-      throw new Error(
-        "the `size` argument must be either a LogicalSize or a PhysicalSize instance"
-      );
-    }
-    let value = null;
-    if (size) {
-      value = {};
-      value[`${size.type}`] = {
-        width: size.width,
-        height: size.height
-      };
-    }
     return invoke("plugin:window|set_min_size", {
       label: this.label,
-      value
+      value: size instanceof Size ? size : size ? new Size(size) : null
     });
   }
   /**
@@ -1176,22 +1419,9 @@ var Window = class {
    * @returns A promise indicating the success or failure of the operation.
    */
   async setMaxSize(size) {
-    if (size && size.type !== "Logical" && size.type !== "Physical") {
-      throw new Error(
-        "the `size` argument must be either a LogicalSize or a PhysicalSize instance"
-      );
-    }
-    let value = null;
-    if (size) {
-      value = {};
-      value[`${size.type}`] = {
-        width: size.width,
-        height: size.height
-      };
-    }
     return invoke("plugin:window|set_max_size", {
       label: this.label,
-      value
+      value: size instanceof Size ? size : size ? new Size(size) : null
     });
   }
   /**
@@ -1231,19 +1461,9 @@ var Window = class {
    * @returns A promise indicating the success or failure of the operation.
    */
   async setPosition(position) {
-    if (!position || position.type !== "Logical" && position.type !== "Physical") {
-      throw new Error(
-        "the `position` argument must be either a LogicalPosition or a PhysicalPosition instance"
-      );
-    }
-    const value = {};
-    value[`${position.type}`] = {
-      x: position.x,
-      y: position.y
-    };
     return invoke("plugin:window|set_position", {
       label: this.label,
-      value
+      value: position instanceof Position ? position : new Position(position)
     });
   }
   /**
@@ -1286,7 +1506,7 @@ var Window = class {
    * await getCurrentWindow().setIcon('/tauri/awesome.png');
    * ```
    *
-   * Note that you need the `image-ico` or `image-png` Cargo features to use this API.
+   * Note that you may need the `image-ico` or `image-png` Cargo features to use this API.
    * To enable it, change your Cargo.toml file:
    * ```toml
    * [dependencies]
@@ -1389,6 +1609,21 @@ var Window = class {
     });
   }
   /**
+   * Sets the window background color.
+   *
+   * #### Platform-specific:
+   *
+   * - **Windows:** alpha channel is ignored.
+   * - **iOS / Android:** Unsupported.
+   *
+   * @returns A promise indicating the success or failure of the operation.
+   *
+   * @since 2.1.0
+   */
+  async setBackgroundColor(color) {
+    return invoke("plugin:window|set_background_color", { color });
+  }
+  /**
    * Changes the position of the cursor in window coordinates.
    * @example
    * ```typescript
@@ -1400,19 +1635,9 @@ var Window = class {
    * @returns A promise indicating the success or failure of the operation.
    */
   async setCursorPosition(position) {
-    if (!position || position.type !== "Logical" && position.type !== "Physical") {
-      throw new Error(
-        "the `position` argument must be either a LogicalPosition or a PhysicalPosition instance"
-      );
-    }
-    const value = {};
-    value[`${position.type}`] = {
-      x: position.x,
-      y: position.y
-    };
     return invoke("plugin:window|set_cursor_position", {
       label: this.label,
-      value
+      value: position instanceof Position ? position : new Position(position)
     });
   }
   /**
@@ -1465,6 +1690,74 @@ var Window = class {
     });
   }
   /**
+   * Sets the badge count. It is app wide and not specific to this window.
+   *
+   * #### Platform-specific
+   *
+   * - **Windows**: Unsupported. Use @{linkcode Window.setOverlayIcon} instead.
+   *
+   * @example
+   * ```typescript
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   * await getCurrentWindow().setBadgeCount(5);
+   * ```
+   *
+   * @param count The badge count. Use `undefined` to remove the badge.
+   * @return A promise indicating the success or failure of the operation.
+   */
+  async setBadgeCount(count) {
+    return invoke("plugin:window|set_badge_count", {
+      label: this.label,
+      value: count
+    });
+  }
+  /**
+   * Sets the badge cont **macOS only**.
+   *
+   * @example
+   * ```typescript
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   * await getCurrentWindow().setBadgeLabel("Hello");
+   * ```
+   *
+   * @param label The badge label. Use `undefined` to remove the badge.
+   * @return A promise indicating the success or failure of the operation.
+   */
+  async setBadgeLabel(label) {
+    return invoke("plugin:window|set_badge_label", {
+      label: this.label,
+      value: label
+    });
+  }
+  /**
+   * Sets the overlay icon. **Windows only**
+   * The overlay icon can be set for every window.
+   *
+   *
+   * Note that you may need the `image-ico` or `image-png` Cargo features to use this API.
+   * To enable it, change your Cargo.toml file:
+   *
+   * ```toml
+   * [dependencies]
+   * tauri = { version = "...", features = ["...", "image-png"] }
+   * ```
+   *
+   * @example
+   * ```typescript
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   * await getCurrentWindow().setOverlayIcon("/tauri/awesome.png");
+   * ```
+   *
+   * @param icon Icon bytes or path to the icon file. Use `undefined` to remove the overlay icon.
+   * @return A promise indicating the success or failure of the operation.
+   */
+  async setOverlayIcon(icon) {
+    return invoke("plugin:window|set_overlay_icon", {
+      label: this.label,
+      value: icon ? transformImage(icon) : void 0
+    });
+  }
+  /**
    * Sets the taskbar progress state.
    *
    * #### Platform-specific
@@ -1492,7 +1785,7 @@ var Window = class {
   /**
    * Sets whether the window should be visible on all workspaces or virtual desktops.
    *
-   * ## Platform-specific
+   * #### Platform-specific
    *
    * - **Windows / iOS / Android:** Unsupported.
    *
@@ -1515,6 +1808,22 @@ var Window = class {
       value: style
     });
   }
+  /**
+   * Set window theme, pass in `null` or `undefined` to follow system theme
+   *
+   * #### Platform-specific
+   *
+   * - **Linux / macOS**: Theme is app-wide and not specific to this window.
+   * - **iOS / Android:** Unsupported.
+   *
+   * @since 2.0.0
+   */
+  async setTheme(theme) {
+    return invoke("plugin:window|set_theme", {
+      label: this.label,
+      value: theme
+    });
+  }
   // Listeners
   /**
    * Listen to window resize.
@@ -1535,7 +1844,7 @@ var Window = class {
    */
   async onResized(handler) {
     return this.listen("tauri://resize" /* WINDOW_RESIZED */, (e) => {
-      e.payload = mapPhysicalSize(e.payload);
+      e.payload = new PhysicalSize(e.payload);
       handler(e);
     });
   }
@@ -1558,7 +1867,7 @@ var Window = class {
    */
   async onMoved(handler) {
     return this.listen("tauri://move" /* WINDOW_MOVED */, (e) => {
-      e.payload = mapPhysicalPosition(e.payload);
+      e.payload = new PhysicalPosition(e.payload);
       handler(e);
     });
   }
@@ -1602,8 +1911,8 @@ var Window = class {
    * ```typescript
    * import { getCurrentWindow } from "@tauri-apps/api/webview";
    * const unlisten = await getCurrentWindow().onDragDropEvent((event) => {
-   *  if (event.payload.type === 'hover') {
-   *    console.log('User hovering', event.payload.paths);
+   *  if (event.payload.type === 'over') {
+   *    console.log('User hovering', event.payload.position);
    *  } else if (event.payload.type === 'drop') {
    *    console.log('User dropped', event.payload.paths);
    *  } else {
@@ -1627,7 +1936,7 @@ var Window = class {
           payload: {
             type: "enter",
             paths: event.payload.paths,
-            position: mapPhysicalPosition(event.payload.position)
+            position: new PhysicalPosition(event.payload.position)
           }
         });
       }
@@ -1639,7 +1948,7 @@ var Window = class {
           ...event,
           payload: {
             type: "over",
-            position: mapPhysicalPosition(event.payload.position)
+            position: new PhysicalPosition(event.payload.position)
           }
         });
       }
@@ -1652,7 +1961,7 @@ var Window = class {
           payload: {
             type: "drop",
             paths: event.payload.paths,
-            position: mapPhysicalPosition(event.payload.position)
+            position: new PhysicalPosition(event.payload.position)
           }
         });
       }
@@ -1791,15 +2100,9 @@ function mapMonitor(m) {
   return m === null ? null : {
     name: m.name,
     scaleFactor: m.scaleFactor,
-    position: mapPhysicalPosition(m.position),
-    size: mapPhysicalSize(m.size)
+    position: new PhysicalPosition(m.position),
+    size: new PhysicalSize(m.size)
   };
-}
-function mapPhysicalPosition(m) {
-  return new PhysicalPosition(m.x, m.y);
-}
-function mapPhysicalSize(m) {
-  return new PhysicalSize(m.width, m.height);
 }
 async function currentMonitor() {
   return invoke("plugin:window|current_monitor").then(
@@ -1824,7 +2127,7 @@ async function availableMonitors() {
 }
 async function cursorPosition() {
   return invoke("plugin:window|cursor_position").then(
-    mapPhysicalPosition
+    (v) => new PhysicalPosition(v)
   );
 }
 export {

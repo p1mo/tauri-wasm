@@ -1,41 +1,49 @@
-// tauri-v2/tooling/api/src/core.ts
-function transformCallback(callback, once2 = false) {
-  return window.__TAURI_INTERNALS__.transformCallback(callback, once2);
+// tauri-v2/packages/api/src/core.ts
+var SERIALIZE_TO_IPC_FN = "__TAURI_TO_IPC_KEY__";
+function transformCallback(callback, once = false) {
+  return window.__TAURI_INTERNALS__.transformCallback(callback, once);
 }
 var Channel = class {
+  /** The callback id returned from {@linkcode transformCallback} */
   id;
-  // @ts-expect-error field used by the IPC serializer
-  __TAURI_CHANNEL_MARKER__ = true;
-  #onmessage = () => {
-  };
-  #nextMessageId = 0;
-  #pendingMessages = {};
-  constructor() {
-    this.id = transformCallback(
-      ({ message, id }) => {
-        if (id === this.#nextMessageId) {
-          this.#nextMessageId = id + 1;
-          this.#onmessage(message);
-          const pendingMessageIds = Object.keys(this.#pendingMessages);
-          if (pendingMessageIds.length > 0) {
-            let nextId = id + 1;
-            for (const pendingId of pendingMessageIds.sort()) {
-              if (parseInt(pendingId) === nextId) {
-                const message2 = this.#pendingMessages[pendingId];
-                delete this.#pendingMessages[pendingId];
-                this.#onmessage(message2);
-                nextId += 1;
-              } else {
-                break;
-              }
-            }
-            this.#nextMessageId = nextId;
-          }
+  #onmessage;
+  // the index is used as a mechanism to preserve message order
+  #nextMessageIndex = 0;
+  #pendingMessages = [];
+  #messageEndIndex;
+  constructor(onmessage) {
+    this.#onmessage = onmessage || (() => {
+    });
+    this.id = transformCallback((rawMessage) => {
+      const index = rawMessage.index;
+      if ("end" in rawMessage) {
+        if (index == this.#nextMessageIndex) {
+          this.cleanupCallback();
         } else {
-          this.#pendingMessages[id.toString()] = message;
+          this.#messageEndIndex = index;
         }
+        return;
       }
-    );
+      const message = rawMessage.message;
+      if (index == this.#nextMessageIndex) {
+        this.#onmessage(message);
+        this.#nextMessageIndex += 1;
+        while (this.#nextMessageIndex in this.#pendingMessages) {
+          const message2 = this.#pendingMessages[this.#nextMessageIndex];
+          this.#onmessage(message2);
+          delete this.#pendingMessages[this.#nextMessageIndex];
+          this.#nextMessageIndex += 1;
+        }
+        if (this.#nextMessageIndex === this.#messageEndIndex) {
+          this.cleanupCallback();
+        }
+      } else {
+        this.#pendingMessages[index] = message;
+      }
+    });
+  }
+  cleanupCallback() {
+    Reflect.deleteProperty(window, `_${this.id}`);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -43,107 +51,56 @@ var Channel = class {
   get onmessage() {
     return this.#onmessage;
   }
-  toJSON() {
+  [SERIALIZE_TO_IPC_FN]() {
     return `__CHANNEL__:${this.id}`;
   }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
 };
+async function checkPermissions(plugin) {
+  return invoke(`plugin:${plugin}|check_permissions`);
+}
 async function invoke(cmd, args = {}, options) {
   return window.__TAURI_INTERNALS__.invoke(cmd, args, options);
 }
 
-// tauri-plugins/plugins/geolocation/guest-js/bindings.ts
-var commands = {
-  async getCurrentPosition(options) {
-    try {
-      return {
-        status: "ok",
-        data: await invoke("plugin:geolocation|get_current_position", {
-          options
-        })
-      };
-    } catch (e) {
-      if (e instanceof Error)
-        throw e;
-      else
-        return { status: "error", error: e };
-    }
-  },
-  async watchPosition(options, channel) {
-    try {
-      return {
-        status: "ok",
-        data: await invoke("plugin:geolocation|watch_position", {
-          options,
-          channel
-        })
-      };
-    } catch (e) {
-      if (e instanceof Error)
-        throw e;
-      else
-        return { status: "error", error: e };
-    }
-  },
-  async clearWatch(channelId) {
-    try {
-      return {
-        status: "ok",
-        data: await invoke("plugin:geolocation|clear_watch", {
-          channelId
-        })
-      };
-    } catch (e) {
-      if (e instanceof Error)
-        throw e;
-      else
-        return { status: "error", error: e };
-    }
-  },
-  async checkPermissions() {
-    try {
-      return {
-        status: "ok",
-        data: await invoke("plugin:geolocation|check_permissions")
-      };
-    } catch (e) {
-      if (e instanceof Error)
-        throw e;
-      else
-        return { status: "error", error: e };
-    }
-  },
-  async requestPermissions(permissions) {
-    try {
-      return {
-        status: "ok",
-        data: await invoke("plugin:geolocation|request_permissions", {
-          permissions
-        })
-      };
-    } catch (e) {
-      if (e instanceof Error)
-        throw e;
-      else
-        return { status: "error", error: e };
-    }
-  }
-};
-
 // tauri-plugins/plugins/geolocation/guest-js/index.ts
 async function watchPosition(options, cb) {
   const channel = new Channel();
-  channel.onmessage = cb;
-  await commands.watchPosition(options, channel);
+  channel.onmessage = (message) => {
+    if (typeof message === "string") {
+      cb(null, message);
+    } else {
+      cb(message);
+    }
+  };
+  await invoke("plugin:geolocation|watch_position", {
+    options,
+    channel
+  });
   return channel.id;
 }
-var {
-  getCurrentPosition,
-  clearWatch,
-  checkPermissions,
-  requestPermissions
-} = commands;
+async function getCurrentPosition(options) {
+  return await invoke("plugin:geolocation|get_current_position", {
+    options
+  });
+}
+async function clearWatch(channelId) {
+  await invoke("plugin:geolocation|clear_watch", {
+    channelId
+  });
+}
+async function checkPermissions2() {
+  return await checkPermissions("geolocation");
+}
+async function requestPermissions(permissions) {
+  return await invoke("plugin:geolocation|request_permissions", {
+    permissions
+  });
+}
 export {
-  checkPermissions,
+  checkPermissions2 as checkPermissions,
   clearWatch,
   getCurrentPosition,
   requestPermissions,

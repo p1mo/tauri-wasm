@@ -1,15 +1,68 @@
-// tauri-v2/tooling/api/src/core.ts
+// tauri-v2/packages/api/src/core.ts
+var SERIALIZE_TO_IPC_FN = "__TAURI_TO_IPC_KEY__";
+function transformCallback(callback, once = false) {
+  return window.__TAURI_INTERNALS__.transformCallback(callback, once);
+}
+var Channel = class {
+  /** The callback id returned from {@linkcode transformCallback} */
+  id;
+  #onmessage;
+  // the index is used as a mechanism to preserve message order
+  #nextMessageIndex = 0;
+  #pendingMessages = [];
+  #messageEndIndex;
+  constructor(onmessage) {
+    this.#onmessage = onmessage || (() => {
+    });
+    this.id = transformCallback((rawMessage) => {
+      const index = rawMessage.index;
+      if ("end" in rawMessage) {
+        if (index == this.#nextMessageIndex) {
+          this.cleanupCallback();
+        } else {
+          this.#messageEndIndex = index;
+        }
+        return;
+      }
+      const message = rawMessage.message;
+      if (index == this.#nextMessageIndex) {
+        this.#onmessage(message);
+        this.#nextMessageIndex += 1;
+        while (this.#nextMessageIndex in this.#pendingMessages) {
+          const message2 = this.#pendingMessages[this.#nextMessageIndex];
+          this.#onmessage(message2);
+          delete this.#pendingMessages[this.#nextMessageIndex];
+          this.#nextMessageIndex += 1;
+        }
+        if (this.#nextMessageIndex === this.#messageEndIndex) {
+          this.cleanupCallback();
+        }
+      } else {
+        this.#pendingMessages[index] = message;
+      }
+    });
+  }
+  cleanupCallback() {
+    Reflect.deleteProperty(window, `_${this.id}`);
+  }
+  set onmessage(handler) {
+    this.#onmessage = handler;
+  }
+  get onmessage() {
+    return this.#onmessage;
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return `__CHANNEL__:${this.id}`;
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
 async function invoke(cmd, args = {}, options) {
   return window.__TAURI_INTERNALS__.invoke(cmd, args, options);
 }
 
 // tauri-plugins/plugins/stronghold/guest-js/index.ts
-function toBytesDto(v) {
-  if (typeof v === "string") {
-    return v;
-  }
-  return Array.from(v instanceof ArrayBuffer ? new Uint8Array(v) : v);
-}
 var Location = class _Location {
   constructor(type, payload) {
     this.type = type;
@@ -17,13 +70,13 @@ var Location = class _Location {
   }
   static generic(vault, record) {
     return new _Location("Generic", {
-      vault: toBytesDto(vault),
-      record: toBytesDto(record)
+      vault,
+      record
     });
   }
   static counter(vault, counter) {
     return new _Location("Counter", {
-      vault: toBytesDto(vault),
+      vault,
       counter
     });
   }
@@ -159,7 +212,7 @@ var ProcedureExecutor = class {
 var Client = class {
   constructor(path, name) {
     this.path = path;
-    this.name = toBytesDto(name);
+    this.name = name;
   }
   /**
    * Get a vault by name.
@@ -168,7 +221,7 @@ var Client = class {
    * @returns
    */
   getVault(name) {
-    return new Vault(this.path, this.name, toBytesDto(name));
+    return new Vault(this.path, this.name, name);
   }
   getStore() {
     return new Store(this.path, this.name);
@@ -183,14 +236,14 @@ var Store = class {
     return await invoke("plugin:stronghold|get_store_record", {
       snapshotPath: this.path,
       client: this.client,
-      key: toBytesDto(key)
+      key
     }).then((v) => v && Uint8Array.from(v));
   }
   async insert(key, value, lifetime) {
     await invoke("plugin:stronghold|save_store_record", {
       snapshotPath: this.path,
       client: this.client,
-      key: toBytesDto(key),
+      key,
       value,
       lifetime
     });
@@ -201,7 +254,7 @@ var Store = class {
       {
         snapshotPath: this.path,
         client: this.client,
-        key: toBytesDto(key)
+        key
       }
     ).then((v) => v && Uint8Array.from(v));
   }
@@ -214,8 +267,8 @@ var Vault = class extends ProcedureExecutor {
       vault: name
     });
     this.path = path;
-    this.client = toBytesDto(client);
-    this.name = toBytesDto(name);
+    this.client = client;
+    this.name = name;
   }
   /**
    * Insert a record to this vault.
@@ -229,7 +282,7 @@ var Vault = class extends ProcedureExecutor {
       snapshotPath: this.path,
       client: this.client,
       vault: this.name,
-      recordPath: toBytesDto(recordPath),
+      recordPath,
       secret
     });
   }
@@ -280,13 +333,13 @@ var Stronghold = class _Stronghold {
   async loadClient(client) {
     return await invoke("plugin:stronghold|load_client", {
       snapshotPath: this.path,
-      client: toBytesDto(client)
+      client
     }).then(() => new Client(this.path, client));
   }
   async createClient(client) {
     return await invoke("plugin:stronghold|create_client", {
       snapshotPath: this.path,
-      client: toBytesDto(client)
+      client
     }).then(() => new Client(this.path, client));
   }
   /**

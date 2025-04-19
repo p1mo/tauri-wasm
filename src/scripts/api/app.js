@@ -1,4 +1,61 @@
-// tauri-v2/tooling/api/src/core.ts
+// tauri-v2/packages/api/src/core.ts
+var SERIALIZE_TO_IPC_FN = "__TAURI_TO_IPC_KEY__";
+function transformCallback(callback, once = false) {
+  return window.__TAURI_INTERNALS__.transformCallback(callback, once);
+}
+var Channel = class {
+  #onmessage;
+  // the index is used as a mechanism to preserve message order
+  #nextMessageIndex = 0;
+  #pendingMessages = [];
+  #messageEndIndex;
+  constructor(onmessage) {
+    this.#onmessage = onmessage || (() => {
+    });
+    this.id = transformCallback((rawMessage) => {
+      const index = rawMessage.index;
+      if ("end" in rawMessage) {
+        if (index == this.#nextMessageIndex) {
+          this.cleanupCallback();
+        } else {
+          this.#messageEndIndex = index;
+        }
+        return;
+      }
+      const message = rawMessage.message;
+      if (index == this.#nextMessageIndex) {
+        this.#onmessage(message);
+        this.#nextMessageIndex += 1;
+        while (this.#nextMessageIndex in this.#pendingMessages) {
+          const message2 = this.#pendingMessages[this.#nextMessageIndex];
+          this.#onmessage(message2);
+          delete this.#pendingMessages[this.#nextMessageIndex];
+          this.#nextMessageIndex += 1;
+        }
+        if (this.#nextMessageIndex === this.#messageEndIndex) {
+          this.cleanupCallback();
+        }
+      } else {
+        this.#pendingMessages[index] = message;
+      }
+    });
+  }
+  cleanupCallback() {
+    Reflect.deleteProperty(window, `_${this.id}`);
+  }
+  set onmessage(handler) {
+    this.#onmessage = handler;
+  }
+  get onmessage() {
+    return this.#onmessage;
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return `__CHANNEL__:${this.id}`;
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
 async function invoke(cmd, args = {}, options) {
   return window.__TAURI_INTERNALS__.invoke(cmd, args, options);
 }
@@ -21,7 +78,7 @@ var Resource = class {
   }
 };
 
-// tauri-v2/tooling/api/src/image.ts
+// tauri-v2/packages/api/src/image.ts
 var Image = class _Image extends Resource {
   /**
    * Creates an Image from a resource ID. For internal use only.
@@ -86,11 +143,11 @@ var Image = class _Image extends Resource {
   }
 };
 function transformImage(image) {
-  const ret = image == null ? null : typeof image === "string" ? image : image instanceof Uint8Array ? Array.from(image) : image instanceof ArrayBuffer ? Array.from(new Uint8Array(image)) : image instanceof Image ? image.rid : image;
+  const ret = image == null ? null : typeof image === "string" ? image : image instanceof Image ? image.rid : image;
   return ret;
 }
 
-// tauri-v2/tooling/api/src/app.ts
+// tauri-v2/packages/api/src/app.ts
 async function getVersion() {
   return invoke("plugin:app|version");
 }
@@ -100,22 +157,42 @@ async function getName() {
 async function getTauriVersion() {
   return invoke("plugin:app|tauri_version");
 }
+async function getIdentifier() {
+  return invoke("plugin:app|identifier");
+}
 async function show() {
   return invoke("plugin:app|app_show");
 }
 async function hide() {
   return invoke("plugin:app|app_hide");
 }
+async function fetchDataStoreIdentifiers() {
+  return invoke("plugin:app|fetch_data_store_identifiers");
+}
+async function removeDataStore(uuid) {
+  return invoke("plugin:app|remove_data_store", { uuid });
+}
 async function defaultWindowIcon() {
   return invoke("plugin:app|default_window_icon").then(
     (rid) => rid ? new Image(rid) : null
   );
 }
+async function setTheme(theme) {
+  return invoke("plugin:app|set_app_theme", { theme });
+}
+async function setDockVisibility(visible) {
+  return invoke("plugin:app|set_dock_visibility", { visible });
+}
 export {
   defaultWindowIcon,
+  fetchDataStoreIdentifiers,
+  getIdentifier,
   getName,
   getTauriVersion,
   getVersion,
   hide,
+  removeDataStore,
+  setDockVisibility,
+  setTheme,
   show
 };

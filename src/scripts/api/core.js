@@ -1,52 +1,59 @@
-// tauri-v2/tooling/api/src/core.ts
+// tauri-v2/packages/api/src/core.ts
+var SERIALIZE_TO_IPC_FN = "__TAURI_TO_IPC_KEY__";
 function transformCallback(callback, once = false) {
   return window.__TAURI_INTERNALS__.transformCallback(callback, once);
 }
 var Channel = class {
-  constructor() {
-    // @ts-expect-error field used by the IPC serializer
-    this.__TAURI_CHANNEL_MARKER__ = true;
-    this.#onmessage = () => {
-    };
-    this.#nextMessageId = 0;
-    this.#pendingMessages = {};
-    this.id = transformCallback(
-      ({ message, id }) => {
-        if (id === this.#nextMessageId) {
-          this.#nextMessageId = id + 1;
-          this.#onmessage(message);
-          const pendingMessageIds = Object.keys(this.#pendingMessages);
-          if (pendingMessageIds.length > 0) {
-            let nextId = id + 1;
-            for (const pendingId of pendingMessageIds.sort()) {
-              if (parseInt(pendingId) === nextId) {
-                const message2 = this.#pendingMessages[pendingId];
-                delete this.#pendingMessages[pendingId];
-                this.#onmessage(message2);
-                nextId += 1;
-              } else {
-                break;
-              }
-            }
-            this.#nextMessageId = nextId;
-          }
-        } else {
-          this.#pendingMessages[id.toString()] = message;
-        }
-      }
-    );
-  }
   #onmessage;
-  #nextMessageId;
-  #pendingMessages;
+  // the index is used as a mechanism to preserve message order
+  #nextMessageIndex = 0;
+  #pendingMessages = [];
+  #messageEndIndex;
+  constructor(onmessage) {
+    this.#onmessage = onmessage || (() => {
+    });
+    this.id = transformCallback((rawMessage) => {
+      const index = rawMessage.index;
+      if ("end" in rawMessage) {
+        if (index == this.#nextMessageIndex) {
+          this.cleanupCallback();
+        } else {
+          this.#messageEndIndex = index;
+        }
+        return;
+      }
+      const message = rawMessage.message;
+      if (index == this.#nextMessageIndex) {
+        this.#onmessage(message);
+        this.#nextMessageIndex += 1;
+        while (this.#nextMessageIndex in this.#pendingMessages) {
+          const message2 = this.#pendingMessages[this.#nextMessageIndex];
+          this.#onmessage(message2);
+          delete this.#pendingMessages[this.#nextMessageIndex];
+          this.#nextMessageIndex += 1;
+        }
+        if (this.#nextMessageIndex === this.#messageEndIndex) {
+          this.cleanupCallback();
+        }
+      } else {
+        this.#pendingMessages[index] = message;
+      }
+    });
+  }
+  cleanupCallback() {
+    Reflect.deleteProperty(window, `_${this.id}`);
+  }
   set onmessage(handler) {
     this.#onmessage = handler;
   }
   get onmessage() {
     return this.#onmessage;
   }
-  toJSON() {
+  [SERIALIZE_TO_IPC_FN]() {
     return `__CHANNEL__:${this.id}`;
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
   }
 };
 var PluginListener = class {
@@ -63,11 +70,16 @@ var PluginListener = class {
   }
 };
 async function addPluginListener(plugin, event, cb) {
-  const handler = new Channel();
-  handler.onmessage = cb;
-  return invoke(`plugin:${plugin}|register_listener`, { event, handler }).then(
+  const handler = new Channel(cb);
+  return invoke(`plugin:${plugin}|registerListener`, { event, handler }).then(
     () => new PluginListener(plugin, event, handler.id)
   );
+}
+async function checkPermissions(plugin) {
+  return invoke(`plugin:${plugin}|check_permissions`);
+}
+async function requestPermissions(plugin) {
+  return invoke(`plugin:${plugin}|request_permissions`);
 }
 async function invoke(cmd, args = {}, options) {
   return window.__TAURI_INTERNALS__.invoke(cmd, args, options);
@@ -94,15 +106,18 @@ var Resource = class {
   }
 };
 function isTauri() {
-  return "isTauri" in window && !!window.isTauri;
+  return !!(globalThis || window).isTauri;
 }
 export {
   Channel,
   PluginListener,
   Resource,
+  SERIALIZE_TO_IPC_FN,
   addPluginListener,
+  checkPermissions,
   convertFileSrc,
   invoke,
   isTauri,
+  requestPermissions,
   transformCallback
 };
