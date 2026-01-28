@@ -40,6 +40,7 @@ plugin-all = [
     "log",
     "nfc",
     "notification",
+    "opener",
     "os",
     "positioner",
     "process",
@@ -68,6 +69,7 @@ http = []
 log = []
 nfc = []
 notification = []
+opener = []
 os = []
 positioner = []
 process = []

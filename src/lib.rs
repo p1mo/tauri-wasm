@@ -1,6 +1,6 @@
 //! [![](https://github.com/p1mo/tauri-wasm/blob/main/.github/banner.png)](https://github.com/p1mo/tauri-wasm)
 //! # Tauri v2 wasm bindings
-//! **Version:** 2.5.0
+//! **Version:** 2.9.5
 
 
 use wasm_bindgen::JsValue;
@@ -98,6 +98,9 @@ pub mod plugin {
     /// # Notification bindings
     #[cfg(feature = "notification")]
     pub mod notification;
+    /// # OS bindings
+    #[cfg(feature = "opener")]
+    pub mod opener;
     /// # OS bindings
     #[cfg(feature = "os")]
     pub mod os;

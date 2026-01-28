@@ -59,11 +59,13 @@ struct FsOptions {
     pub dir: Option<BaseDirectory>,
 }
 
+/*
 #[derive(Serialize, Clone, PartialEq, Debug)]
 struct FsTextFileOption {
     pub contents: String,
     path: PathBuf,
 }
+*/
 
 /// Copies a file to a destination.
 ///

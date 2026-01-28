@@ -22,7 +22,7 @@
 </div>
 
 <div align="center">
-    <img src="https://img.shields.io/badge/API_Version-2.5.0-FE7A36">
+    <img src="https://img.shields.io/badge/API_Version-2.9.5-FE7A36">
     <img src="https://img.shields.io/badge/tauri--wasm-unofficial-FE7A36">
     <a href="https://github.com/JonasKruckenberg/tauri-sys"><img src="https://img.shields.io/badge/tauri__sys-tauri_v1-65B741"></a>
 </div>
@@ -31,7 +31,7 @@
 
 ```toml
 [dependencies]
-tauri-wasm = { git = "https://github.com/p1mo/tauri-wasm", tag = "v0.1.0-dev", features = [
+tauri-wasm = { git = "https://github.com/p1mo/tauri-wasm", tag = "v0.1.2-dev", features = [
         "all", # for all api bindings
         "plugin-all" # for all plugin bindings. should you do this? no.
 ] }
@@ -364,6 +364,16 @@ fn main() {
             </td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
             <td align="center"><img src="https://img.shields.io/badge/NO-526D82"></td>
+        </tr>
+        <tr>
+            <td align="center"><ul><li> [x] </li></ul></td>
+            <td><code>opener</code></td>
+            <td align="center"><code>plugin</code></td>
+            <td align="center">
+                <img src="https://img.shields.io/badge/Desktop-3652AD">
+            </td>
+            <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
+            <td align="center"><img src="https://img.shields.io/badge/YES-24C620"></td>
         </tr>
         <tr>
             <td align="center"><ul><li> [x] </li></ul></td>

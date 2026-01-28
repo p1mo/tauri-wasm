@@ -172,14 +172,15 @@ impl<'a> FileDialogBuilder<'a> {
         self.multiple = true;
     
         let raw = inner::open(serde_wasm_bindgen::to_value(&self)?).await?;
+
+        match Array::try_from(raw) {
+            Ok(files) => {
+                let files = ArrayIterator::new(files)
+                    .map(|raw| serde_wasm_bindgen::from_value::<FileResponse>(raw).unwrap());
     
-        if let Ok(files) = Array::try_from(raw) {
-            let files = ArrayIterator::new(files)
-                .map(|raw| serde_wasm_bindgen::from_value::<FileResponse>(raw).unwrap());
-    
-            Ok(Some(files))
-        } else {
-            Ok(None)
+                Ok(Some(files))
+            },
+            Err(_) => Ok(None),            
         }
     }
 
@@ -223,13 +224,14 @@ impl<'a> FileDialogBuilder<'a> {
 
         let raw = inner::open(serde_wasm_bindgen::to_value(&self)?).await?;
 
-        if let Ok(files) = Array::try_from(raw) {
-            let files =
-                ArrayIterator::new(files).map(|raw| serde_wasm_bindgen::from_value(raw).unwrap());
-
-            Ok(Some(files))
-        } else {
-            Ok(None)
+        match Array::try_from(raw) {
+            Ok(files) => {
+                let files = ArrayIterator::new(files)
+                    .map(|raw| serde_wasm_bindgen::from_value::<PathBuf>(raw).unwrap());
+    
+                Ok(Some(files))
+            },
+            Err(_) => Ok(None),            
         }
     }
 
