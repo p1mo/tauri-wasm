@@ -43,7 +43,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -256,7 +256,7 @@ var Command = class _Command extends EventEmitter {
    * Creates a new `Command` instance.
    *
    * @param program The program name to execute.
-   * It must be configured on `tauri.conf.json > plugins > shell > scope`.
+   * It must be configured in your project's capabilities.
    * @param args Program arguments.
    * @param options Spawn options.
    */
@@ -280,7 +280,7 @@ var Command = class _Command extends EventEmitter {
    * ```
    *
    * @param program The program to execute.
-   * It must be configured on `tauri.conf.json > plugins > shell > scope`.
+   * It must be configured in your project's capabilities.
    */
   static create(program, args = [], options) {
     return new _Command(program, args, options);
@@ -295,7 +295,7 @@ var Command = class _Command extends EventEmitter {
    * ```
    *
    * @param program The program to execute.
-   * It must be configured on `tauri.conf.json > plugins > shell > scope`.
+   * It must be configured in your project's capabilities.
    */
   static sidecar(program, args = [], options) {
     const instance = new _Command(program, args, options);

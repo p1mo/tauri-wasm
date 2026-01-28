@@ -41,7 +41,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -298,6 +298,7 @@ var Position = class {
 
 // tauri-v2/packages/api/src/event.ts
 async function _unlisten(event, eventId) {
+  window.__TAURI_EVENT_PLUGIN_INTERNALS__.unregisterListener(event, eventId);
   await invoke("plugin:event|unlisten", {
     event,
     eventId
@@ -317,7 +318,7 @@ async function once(event, handler, options) {
   return listen(
     event,
     (eventData) => {
-      _unlisten(event, eventData.id);
+      void _unlisten(event, eventData.id);
       handler(eventData);
     },
     options
@@ -1471,6 +1472,21 @@ var Window = class {
     });
   }
   /**
+   * On macOS, Toggles a fullscreen mode that doesn’t require a new macOS space. Returns a boolean indicating whether the transition was successful (this won’t work if the window was already in the native fullscreen).
+   * This is how fullscreen used to work on macOS in versions before Lion. And allows the user to have a fullscreen window without using another space or taking control over the entire monitor.
+   *
+   * On other platforms, this is the same as {@link Window.setFullscreen}.
+   *
+   * @param fullscreen Whether the window should go to simple fullscreen or not.
+   * @returns A promise indicating the success or failure of the operation.
+   */
+  async setSimpleFullscreen(fullscreen) {
+    return invoke("plugin:window|set_simple_fullscreen", {
+      label: this.label,
+      value: fullscreen
+    });
+  }
+  /**
    * Bring the window to front and focus.
    * @example
    * ```typescript
@@ -1483,6 +1499,29 @@ var Window = class {
   async setFocus() {
     return invoke("plugin:window|set_focus", {
       label: this.label
+    });
+  }
+  /**
+   * Sets whether the window can be focused.
+   *
+   * #### Platform-specific
+   *
+   * - **macOS**: If the window is already focused, it is not possible to unfocus it after calling `set_focusable(false)`.
+   *   In this case, you might consider calling {@link Window.setFocus} but it will move the window to the back i.e. at the bottom in terms of z-order.
+   *
+   * @example
+   * ```typescript
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   * await getCurrentWindow().setFocusable(true);
+   * ```
+   *
+   * @param focusable Whether the window can be focused.
+   * @returns A promise indicating the success or failure of the operation.
+   */
+  async setFocusable(focusable) {
+    return invoke("plugin:window|set_focusable", {
+      label: this.label,
+      value: focusable
     });
   }
   /**
@@ -2089,14 +2128,24 @@ var Webview = class {
    * import { Window } from '@tauri-apps/api/window'
    * import { Webview } from '@tauri-apps/api/webview'
    * const appWindow = new Window('my-label')
-   * const webview = new Webview(appWindow, 'my-label', {
-   *   url: 'https://github.com/tauri-apps/tauri'
-   * });
-   * webview.once('tauri://created', function () {
-   *  // webview successfully created
-   * });
-   * webview.once('tauri://error', function (e) {
-   *  // an error happened creating the webview
+   *
+   * appWindow.once('tauri://created', async function() {
+   *   const webview = new Webview(appWindow, 'my-label', {
+   *     url: 'https://github.com/tauri-apps/tauri',
+   *
+   *     // create a webview with specific logical position and size
+   *     x: 0,
+   *     y: 0,
+   *     width: 800,
+   *     height: 600,
+   *   });
+   *
+   *   webview.once('tauri://created', function () {
+   *     // webview successfully created
+   *   });
+   *   webview.once('tauri://error', function (e) {
+   *     // an error happened creating the webview
+   *   });
    * });
    * ```
    *
@@ -2111,8 +2160,10 @@ var Webview = class {
     if (!options?.skip) {
       invoke("plugin:webview|create_webview", {
         windowLabel: window2.label,
-        label,
-        options
+        options: {
+          ...options,
+          label
+        }
       }).then(async () => this.emit("tauri://created")).catch(async (e) => this.emit("tauri://error", e));
     }
   }
@@ -2366,6 +2417,22 @@ var Webview = class {
     });
   }
   /**
+   * Sets whether the webview should automatically grow and shrink its size and position when the parent window resizes.
+   * @example
+   * ```typescript
+   * import { getCurrentWebview } from '@tauri-apps/api/webview';
+   * await getCurrentWebview().setAutoResize(true);
+   * ```
+   *
+   * @returns A promise indicating the success or failure of the operation.
+   */
+  async setAutoResize(autoResize) {
+    return invoke("plugin:webview|set_webview_auto_resize", {
+      label: this.label,
+      value: autoResize
+    });
+  }
+  /**
    * Hide the webview.
    * @example
    * ```typescript
@@ -2592,8 +2659,8 @@ var WebviewWindow = class _WebviewWindow {
    * Gets the Webview for the webview associated with the given label.
    * @example
    * ```typescript
-   * import { Webview } from '@tauri-apps/api/webviewWindow';
-   * const mainWebview = Webview.getByLabel('main');
+   * import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+   * const mainWebview = WebviewWindow.getByLabel('main');
    * ```
    *
    * @param label The webview label.
@@ -2619,7 +2686,7 @@ var WebviewWindow = class _WebviewWindow {
     return getAllWebviewWindows();
   }
   /**
-   * Listen to an emitted event on this webivew window.
+   * Listen to an emitted event on this webview window.
    *
    * @example
    * ```typescript

@@ -41,7 +41,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -427,6 +427,7 @@ var IconMenuItem = class _IconMenuItem extends MenuItemBase {
   async setIcon(icon) {
     return invoke("plugin:menu|set_icon", {
       rid: this.rid,
+      kind: this.kind,
       icon: transformImage(icon)
     });
   }
@@ -850,6 +851,14 @@ var Submenu = class _Submenu extends MenuItemBase {
       rid: this.rid
     });
   }
+  /** Sets an icon for this submenu */
+  async setIcon(icon) {
+    return invoke("plugin:menu|set_icon", {
+      rid: this.rid,
+      kind: this.kind,
+      icon: transformImage(icon)
+    });
+  }
 };
 
 // tauri-v2/packages/api/src/menu/menu.ts
@@ -951,7 +960,8 @@ var Menu = class _Menu extends MenuItemBase {
   /**
    * Popup this menu as a context menu on the specified window.
    *
-   * If the position, is provided, it is relative to the window's top-left corner.
+   * @param at If a position is provided, it is relative to the window's top-left corner.
+   * If there isn't one provided, the menu will pop up at the current location of the mouse.
    */
   async popup(at, window2) {
     return invoke("plugin:menu|popup", {

@@ -43,7 +43,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -63,7 +63,13 @@ async function invoke(cmd, args = {}, options) {
 }
 
 // tauri-plugins/plugins/upload/guest-js/index.ts
-async function upload(url, filePath, progressHandler, headers) {
+var HttpMethod = /* @__PURE__ */ ((HttpMethod2) => {
+  HttpMethod2["Post"] = "POST";
+  HttpMethod2["Put"] = "PUT";
+  HttpMethod2["Patch"] = "PATCH";
+  return HttpMethod2;
+})(HttpMethod || {});
+async function upload(url, filePath, progressHandler, headers, method) {
   const ids = new Uint32Array(1);
   window.crypto.getRandomValues(ids);
   const id = ids[0];
@@ -76,6 +82,7 @@ async function upload(url, filePath, progressHandler, headers) {
     url,
     filePath,
     headers: headers ?? {},
+    method: method ?? "POST" /* Post */,
     onProgress
   });
 }
@@ -97,6 +104,7 @@ async function download(url, filePath, progressHandler, headers, body) {
   });
 }
 export {
+  HttpMethod,
   download,
   upload
 };

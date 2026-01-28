@@ -43,7 +43,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -127,29 +127,39 @@ async function fetch(input, init) {
   } = await invoke("plugin:http|fetch_send", {
     rid
   });
-  const body = [204, 205, 304].includes(status) ? null : new ReadableStream({
-    start: (controller) => {
-      const streamChannel = new Channel();
-      streamChannel.onmessage = (res2) => {
-        if (signal?.aborted) {
-          controller.error(ERROR_REQUEST_CANCELLED);
-          return;
-        }
-        const resUint8 = new Uint8Array(res2);
-        const lastByte = resUint8[resUint8.byteLength - 1];
-        const actualRes = resUint8.slice(0, resUint8.byteLength - 1);
-        if (lastByte == 1) {
-          controller.close();
-          return;
-        }
-        controller.enqueue(actualRes);
-      };
-      invoke("plugin:http|fetch_read_body", {
-        rid: responseRid,
-        streamChannel
-      }).catch((e) => {
-        controller.error(e);
+  const dropBody = () => {
+    return invoke("plugin:http|fetch_cancel_body", { rid: responseRid });
+  };
+  const readChunk = async (controller) => {
+    let data2;
+    try {
+      data2 = await invoke("plugin:http|fetch_read_body", {
+        rid: responseRid
       });
+    } catch (e) {
+      controller.error(e);
+      void dropBody();
+      return;
+    }
+    const dataUint8 = new Uint8Array(data2);
+    const lastByte = dataUint8[dataUint8.byteLength - 1];
+    const actualData = dataUint8.slice(0, dataUint8.byteLength - 1);
+    if (lastByte === 1) {
+      controller.close();
+      return;
+    }
+    controller.enqueue(actualData);
+  };
+  const body = [101, 103, 204, 205, 304].includes(status) ? null : new ReadableStream({
+    start: (controller) => {
+      signal?.addEventListener("abort", () => {
+        controller.error(ERROR_REQUEST_CANCELLED);
+        void dropBody();
+      });
+    },
+    pull: (controller) => readChunk(controller),
+    cancel: () => {
+      void dropBody();
     }
   });
   const res = new Response(body, {

@@ -43,7 +43,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -403,7 +403,9 @@ async function readTextFileLines(path, options) {
         this.rid = null;
         return { value: null, done };
       }
-      const line = new TextDecoder().decode(bytes.slice(0, bytes.byteLength));
+      const line = new TextDecoder().decode(
+        bytes.slice(0, bytes.byteLength - 1)
+      );
       return {
         value: line,
         done
@@ -462,7 +464,12 @@ async function writeFile(path, data, options) {
     throw new TypeError("Must be a file URL.");
   }
   if (data instanceof ReadableStream) {
-    const file = await open(path, options);
+    const file = await open(path, {
+      read: false,
+      create: true,
+      write: true,
+      ...options
+    });
     const reader = data.getReader();
     try {
       while (true) {

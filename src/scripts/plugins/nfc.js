@@ -43,7 +43,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -183,7 +183,10 @@ async function write(records, options) {
   });
 }
 async function isAvailable() {
-  return await invoke("plugin:nfc|is_available");
+  const { available } = await invoke(
+    "plugin:nfc|is_available"
+  );
+  return available;
 }
 export {
   NFCTypeNameFormat,

@@ -43,7 +43,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -300,6 +300,7 @@ var Position = class {
 
 // tauri-v2/packages/api/src/event.ts
 async function _unlisten(event, eventId) {
+  window.__TAURI_EVENT_PLUGIN_INTERNALS__.unregisterListener(event, eventId);
   await invoke("plugin:event|unlisten", {
     event,
     eventId
@@ -319,7 +320,7 @@ async function once(event, handler, options) {
   return listen(
     event,
     (eventData) => {
-      _unlisten(event, eventData.id);
+      void _unlisten(event, eventData.id);
       handler(eventData);
     },
     options
@@ -1482,6 +1483,21 @@ var Window = class {
     });
   }
   /**
+   * On macOS, Toggles a fullscreen mode that doesn’t require a new macOS space. Returns a boolean indicating whether the transition was successful (this won’t work if the window was already in the native fullscreen).
+   * This is how fullscreen used to work on macOS in versions before Lion. And allows the user to have a fullscreen window without using another space or taking control over the entire monitor.
+   *
+   * On other platforms, this is the same as {@link Window.setFullscreen}.
+   *
+   * @param fullscreen Whether the window should go to simple fullscreen or not.
+   * @returns A promise indicating the success or failure of the operation.
+   */
+  async setSimpleFullscreen(fullscreen) {
+    return invoke("plugin:window|set_simple_fullscreen", {
+      label: this.label,
+      value: fullscreen
+    });
+  }
+  /**
    * Bring the window to front and focus.
    * @example
    * ```typescript
@@ -1494,6 +1510,29 @@ var Window = class {
   async setFocus() {
     return invoke("plugin:window|set_focus", {
       label: this.label
+    });
+  }
+  /**
+   * Sets whether the window can be focused.
+   *
+   * #### Platform-specific
+   *
+   * - **macOS**: If the window is already focused, it is not possible to unfocus it after calling `set_focusable(false)`.
+   *   In this case, you might consider calling {@link Window.setFocus} but it will move the window to the back i.e. at the bottom in terms of z-order.
+   *
+   * @example
+   * ```typescript
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   * await getCurrentWindow().setFocusable(true);
+   * ```
+   *
+   * @param focusable Whether the window can be focused.
+   * @returns A promise indicating the success or failure of the operation.
+   */
+  async setFocusable(focusable) {
+    return invoke("plugin:window|set_focusable", {
+      label: this.label,
+      value: focusable
     });
   }
   /**

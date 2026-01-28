@@ -43,7 +43,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -93,6 +93,7 @@ var Update = class extends Resource {
   }
   /** Download the updater package */
   async download(onEvent, options) {
+    convertToRustHeaders(options);
     const channel = new Channel();
     if (onEvent) {
       channel.onmessage = onEvent;
@@ -117,6 +118,7 @@ var Update = class extends Resource {
   }
   /** Downloads the updater package and installs it */
   async downloadAndInstall(onEvent, options) {
+    convertToRustHeaders(options);
     const channel = new Channel();
     if (onEvent) {
       channel.onmessage = onEvent;
@@ -133,13 +135,16 @@ var Update = class extends Resource {
   }
 };
 async function check(options) {
-  if (options?.headers) {
-    options.headers = Array.from(new Headers(options.headers).entries());
-  }
+  convertToRustHeaders(options);
   const metadata = await invoke("plugin:updater|check", {
     ...options
   });
   return metadata ? new Update(metadata) : null;
+}
+function convertToRustHeaders(options) {
+  if (options?.headers) {
+    options.headers = Array.from(new Headers(options.headers).entries());
+  }
 }
 export {
   Update,

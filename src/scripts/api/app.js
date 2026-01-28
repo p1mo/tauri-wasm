@@ -41,7 +41,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -56,6 +56,32 @@ var Channel = class {
     return this[SERIALIZE_TO_IPC_FN]();
   }
 };
+var PluginListener = class {
+  constructor(plugin, event, channelId) {
+    this.plugin = plugin;
+    this.event = event;
+    this.channelId = channelId;
+  }
+  async unregister() {
+    return invoke(`plugin:${this.plugin}|remove_listener`, {
+      event: this.event,
+      channelId: this.channelId
+    });
+  }
+};
+async function addPluginListener(plugin, event, cb) {
+  const handler = new Channel(cb);
+  try {
+    await invoke(`plugin:${plugin}|register_listener`, {
+      event,
+      handler
+    });
+    return new PluginListener(plugin, event, handler.id);
+  } catch {
+    await invoke(`plugin:${plugin}|registerListener`, { event, handler });
+    return new PluginListener(plugin, event, handler.id);
+  }
+}
 async function invoke(cmd, args = {}, options) {
   return window.__TAURI_INTERNALS__.invoke(cmd, args, options);
 }
@@ -148,6 +174,15 @@ function transformImage(image) {
 }
 
 // tauri-v2/packages/api/src/app.ts
+var BundleType = /* @__PURE__ */ ((BundleType2) => {
+  BundleType2["Nsis"] = "nsis";
+  BundleType2["Msi"] = "msi";
+  BundleType2["Deb"] = "deb";
+  BundleType2["Rpm"] = "rpm";
+  BundleType2["AppImage"] = "appimage";
+  BundleType2["App"] = "app";
+  return BundleType2;
+})(BundleType || {});
 async function getVersion() {
   return invoke("plugin:app|version");
 }
@@ -183,14 +218,27 @@ async function setTheme(theme) {
 async function setDockVisibility(visible) {
   return invoke("plugin:app|set_dock_visibility", { visible });
 }
+async function getBundleType() {
+  return invoke("plugin:app|bundle_type");
+}
+async function onBackButtonPress(handler) {
+  return addPluginListener(
+    "app",
+    "back-button",
+    handler
+  );
+}
 export {
+  BundleType,
   defaultWindowIcon,
   fetchDataStoreIdentifiers,
+  getBundleType,
   getIdentifier,
   getName,
   getTauriVersion,
   getVersion,
   hide,
+  onBackButtonPress,
   removeDataStore,
   setDockVisibility,
   setTheme,

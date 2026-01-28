@@ -43,7 +43,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -64,6 +64,7 @@ async function invoke(cmd, args = {}, options) {
 
 // tauri-v2/packages/api/src/event.ts
 async function _unlisten(event, eventId) {
+  window.__TAURI_EVENT_PLUGIN_INTERNALS__.unregisterListener(event, eventId);
   await invoke("plugin:event|unlisten", {
     event,
     eventId

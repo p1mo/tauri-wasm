@@ -43,7 +43,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -76,9 +76,16 @@ var PluginListener = class {
 };
 async function addPluginListener(plugin, event, cb) {
   const handler = new Channel(cb);
-  return invoke(`plugin:${plugin}|registerListener`, { event, handler }).then(
-    () => new PluginListener(plugin, event, handler.id)
-  );
+  try {
+    await invoke(`plugin:${plugin}|register_listener`, {
+      event,
+      handler
+    });
+    return new PluginListener(plugin, event, handler.id);
+  } catch {
+    await invoke(`plugin:${plugin}|registerListener`, { event, handler });
+    return new PluginListener(plugin, event, handler.id);
+  }
 }
 async function invoke(cmd, args = {}, options) {
   return window.__TAURI_INTERNALS__.invoke(cmd, args, options);

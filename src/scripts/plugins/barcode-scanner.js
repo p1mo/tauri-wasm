@@ -43,7 +43,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -83,6 +83,9 @@ var Format = /* @__PURE__ */ ((Format2) => {
   Format2["Aztec"] = "AZTEC";
   Format2["DataMatrix"] = "DATA_MATRIX";
   Format2["PDF417"] = "PDF_417";
+  Format2["GS1DataBar"] = "GS1_DATA_BAR";
+  Format2["GS1DataBarLimited"] = "GS1_DATA_BAR_LIMITED";
+  Format2["GS1DataBarExpanded"] = "GS1_DATA_BAR_EXPANDED";
   return Format2;
 })(Format || {});
 async function scan(options) {

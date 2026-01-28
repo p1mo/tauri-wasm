@@ -43,7 +43,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -63,6 +63,23 @@ async function invoke(cmd, args = {}, options) {
 }
 
 // tauri-plugins/plugins/dialog/guest-js/index.ts
+function buttonsToRust(buttons) {
+  if (buttons === void 0) {
+    return void 0;
+  }
+  if (typeof buttons === "string") {
+    return buttons;
+  } else if ("ok" in buttons && "cancel" in buttons) {
+    return { OkCancelCustom: [buttons.ok, buttons.cancel] };
+  } else if ("yes" in buttons && "no" in buttons && "cancel" in buttons) {
+    return {
+      YesNoCancelCustom: [buttons.yes, buttons.no, buttons.cancel]
+    };
+  } else if ("ok" in buttons) {
+    return { OkCustom: buttons.ok };
+  }
+  return void 0;
+}
 async function open(options = {}) {
   if (typeof options === "object") {
     Object.freeze(options);
@@ -77,11 +94,12 @@ async function save(options = {}) {
 }
 async function message(message2, options) {
   const opts = typeof options === "string" ? { title: options } : options;
-  await invoke("plugin:dialog|message", {
+  return invoke("plugin:dialog|message", {
     message: message2.toString(),
     title: opts?.title?.toString(),
     kind: opts?.kind,
-    okButtonLabel: opts?.okLabel?.toString()
+    okButtonLabel: opts?.okLabel?.toString(),
+    buttons: buttonsToRust(opts?.buttons)
   });
 }
 async function ask(message2, options) {

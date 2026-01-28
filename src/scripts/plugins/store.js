@@ -43,7 +43,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -82,6 +82,7 @@ var Resource = class {
 
 // tauri-v2/packages/api/src/event.ts
 async function _unlisten(event, eventId) {
+  window.__TAURI_EVENT_PLUGIN_INTERNALS__.unregisterListener(event, eventId);
   await invoke("plugin:event|unlisten", {
     event,
     eventId
@@ -157,8 +158,8 @@ var LazyStore = class {
   async length() {
     return (await this.store).length();
   }
-  async reload() {
-    await (await this.store).reload();
+  async reload(options) {
+    await (await this.store).reload(options);
   }
   async save() {
     await (await this.store).save();
@@ -194,7 +195,7 @@ var Store = class _Store extends Resource {
   static async load(path, options) {
     const rid = await invoke("plugin:store|load", {
       path,
-      ...options
+      options
     });
     return new _Store(rid);
   }
@@ -266,8 +267,8 @@ var Store = class _Store extends Resource {
   async length() {
     return await invoke("plugin:store|length", { rid: this.rid });
   }
-  async reload() {
-    await invoke("plugin:store|reload", { rid: this.rid });
+  async reload(options) {
+    await invoke("plugin:store|reload", { rid: this.rid, ...options });
   }
   async save() {
     await invoke("plugin:store|save", { rid: this.rid });

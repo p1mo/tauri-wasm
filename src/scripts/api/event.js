@@ -41,7 +41,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -79,6 +79,7 @@ var TauriEvent = /* @__PURE__ */ ((TauriEvent2) => {
   return TauriEvent2;
 })(TauriEvent || {});
 async function _unlisten(event, eventId) {
+  window.__TAURI_EVENT_PLUGIN_INTERNALS__.unregisterListener(event, eventId);
   await invoke("plugin:event|unlisten", {
     event,
     eventId
@@ -98,7 +99,7 @@ async function once(event, handler, options) {
   return listen(
     event,
     (eventData) => {
-      _unlisten(event, eventData.id);
+      void _unlisten(event, eventData.id);
       handler(eventData);
     },
     options

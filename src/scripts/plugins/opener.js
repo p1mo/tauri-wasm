@@ -43,7 +43,7 @@ var Channel = class {
     });
   }
   cleanupCallback() {
-    Reflect.deleteProperty(window, `_${this.id}`);
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -76,7 +76,8 @@ async function openPath(path, openWith) {
   });
 }
 async function revealItemInDir(path) {
-  return invoke("plugin:opener|reveal_item_in_dir", { path });
+  const paths = typeof path === "string" ? [path] : path;
+  return invoke("plugin:opener|reveal_item_in_dir", { paths });
 }
 export {
   openPath,
