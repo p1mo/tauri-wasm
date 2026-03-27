@@ -1,5 +1,5 @@
 [package]
-name    = "tauri-wasm"
+name    = "tauri_wasm"
 version = "0.1.3"
 edition = "2024"
 description = "tauri wasm bindings"
