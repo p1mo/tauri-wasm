@@ -41,7 +41,7 @@ jobs:
           uses: actions-rs/cargo@v1
           with:
             command: doc
-            args: -p tauri-wasm --all-features --no-deps
+            args: -p tauri-wasm-rs --all-features --no-deps
                 
         - name: Create index.html
           run: echo '<meta http-equiv="refresh" content="0; url=tauri_wasm">' > ./target/doc/index.html
@@ -50,7 +50,7 @@ jobs:
           uses: actions/configure-pages@v4
               
         - name: Upload artifact
-          uses: actions/upload-pages-artifact@v1
+          uses: actions/upload-pages-artifact@v4
           with:
             path: './target/doc'
                 
