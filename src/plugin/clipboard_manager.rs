@@ -1,5 +1,7 @@
-//! Read and write to the system clipboard.
-//!
+//! 
+//! Version: **clipboard-manager-v2.1.0-rc.0**
+//! 
+//! link to plugin: [tauri-plugin-clipboard-manager](https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/clipboard-manager)
 //!
 
 /// Gets the clipboard content as plain text.

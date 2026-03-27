@@ -1,3 +1,8 @@
+//! 
+//! Version: **cli-v2.0.0-rc.0**
+//! 
+//! link to plugin: [tauri-plugin-cli](https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/cli)
+//!
 
 #[inline(always)]
 pub async fn get_matches() -> crate::Result<bool> {

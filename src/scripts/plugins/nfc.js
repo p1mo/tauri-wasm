@@ -1,4 +1,63 @@
-// tauri-v2/tooling/api/src/core.ts
+// tauri-v2/packages/api/src/core.ts
+var SERIALIZE_TO_IPC_FN = "__TAURI_TO_IPC_KEY__";
+function transformCallback(callback, once = false) {
+  return window.__TAURI_INTERNALS__.transformCallback(callback, once);
+}
+var Channel = class {
+  /** The callback id returned from {@linkcode transformCallback} */
+  id;
+  #onmessage;
+  // the index is used as a mechanism to preserve message order
+  #nextMessageIndex = 0;
+  #pendingMessages = [];
+  #messageEndIndex;
+  constructor(onmessage) {
+    this.#onmessage = onmessage || (() => {
+    });
+    this.id = transformCallback((rawMessage) => {
+      const index = rawMessage.index;
+      if ("end" in rawMessage) {
+        if (index == this.#nextMessageIndex) {
+          this.cleanupCallback();
+        } else {
+          this.#messageEndIndex = index;
+        }
+        return;
+      }
+      const message = rawMessage.message;
+      if (index == this.#nextMessageIndex) {
+        this.#onmessage(message);
+        this.#nextMessageIndex += 1;
+        while (this.#nextMessageIndex in this.#pendingMessages) {
+          const message2 = this.#pendingMessages[this.#nextMessageIndex];
+          this.#onmessage(message2);
+          delete this.#pendingMessages[this.#nextMessageIndex];
+          this.#nextMessageIndex += 1;
+        }
+        if (this.#nextMessageIndex === this.#messageEndIndex) {
+          this.cleanupCallback();
+        }
+      } else {
+        this.#pendingMessages[index] = message;
+      }
+    });
+  }
+  cleanupCallback() {
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
+  }
+  set onmessage(handler) {
+    this.#onmessage = handler;
+  }
+  get onmessage() {
+    return this.#onmessage;
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return `__CHANNEL__:${this.id}`;
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
 async function invoke(cmd, args = {}, options) {
   return window.__TAURI_INTERNALS__.invoke(cmd, args, options);
 }
@@ -40,7 +99,7 @@ function record(format, kind, id, payload) {
 function textRecord(text, id, language = "en") {
   const payload = Array.from(new TextEncoder().encode(language + text));
   payload.unshift(language.length);
-  return record(1 /* NfcWellKnown */, RTD_TEXT, id || [], payload);
+  return record(1 /* NfcWellKnown */, RTD_TEXT, id ?? [], payload);
 }
 var protocols = [
   "",
@@ -83,16 +142,14 @@ var protocols = [
 function encodeURI(uri) {
   let prefix = "";
   protocols.slice(1).forEach(function(protocol) {
-    if ((!prefix || prefix === "urn:") && uri.indexOf(protocol) === 0) {
+    if ((prefix.length === 0 || prefix === "urn:") && uri.indexOf(protocol) === 0) {
       prefix = protocol;
     }
   });
-  if (!prefix) {
+  if (prefix.length === 0) {
     prefix = "";
   }
-  const encoded = Array.from(
-    new TextEncoder().encode(uri.slice(prefix.length))
-  );
+  const encoded = Array.from(new TextEncoder().encode(uri.slice(prefix.length)));
   const protocolCode = protocols.indexOf(prefix);
   encoded.unshift(protocolCode);
   return encoded;
@@ -101,7 +158,7 @@ function uriRecord(uri, id) {
   return record(
     1 /* NfcWellKnown */,
     RTD_URI,
-    id || [],
+    id ?? [],
     encodeURI(uri)
   );
 }
@@ -116,17 +173,20 @@ async function scan(kind, options) {
   });
 }
 async function write(records, options) {
-  const { kind, ...opts } = options || {};
+  const { kind, ...opts } = options ?? {};
   if (kind) {
     opts.kind = mapScanKind(kind);
   }
-  return await invoke("plugin:nfc|write", {
+  await invoke("plugin:nfc|write", {
     records,
     ...opts
   });
 }
 async function isAvailable() {
-  return await invoke("plugin:nfc|is_available");
+  const { available } = await invoke(
+    "plugin:nfc|is_available"
+  );
+  return available;
 }
 export {
   NFCTypeNameFormat,

@@ -1,17 +1,49 @@
-// tauri-v2/tooling/api/src/core.ts
+// tauri-v2/packages/api/src/core.ts
+var SERIALIZE_TO_IPC_FN = "__TAURI_TO_IPC_KEY__";
 function transformCallback(callback, once = false) {
   return window.__TAURI_INTERNALS__.transformCallback(callback, once);
 }
 var Channel = class {
+  /** The callback id returned from {@linkcode transformCallback} */
   id;
-  // @ts-expect-error field used by the IPC serializer
-  __TAURI_CHANNEL_MARKER__ = true;
-  #onmessage = () => {
-  };
-  constructor() {
-    this.id = transformCallback((response) => {
-      this.#onmessage(response);
+  #onmessage;
+  // the index is used as a mechanism to preserve message order
+  #nextMessageIndex = 0;
+  #pendingMessages = [];
+  #messageEndIndex;
+  constructor(onmessage) {
+    this.#onmessage = onmessage || (() => {
     });
+    this.id = transformCallback((rawMessage) => {
+      const index = rawMessage.index;
+      if ("end" in rawMessage) {
+        if (index == this.#nextMessageIndex) {
+          this.cleanupCallback();
+        } else {
+          this.#messageEndIndex = index;
+        }
+        return;
+      }
+      const message = rawMessage.message;
+      if (index == this.#nextMessageIndex) {
+        this.#onmessage(message);
+        this.#nextMessageIndex += 1;
+        while (this.#nextMessageIndex in this.#pendingMessages) {
+          const message2 = this.#pendingMessages[this.#nextMessageIndex];
+          this.#onmessage(message2);
+          delete this.#pendingMessages[this.#nextMessageIndex];
+          this.#nextMessageIndex += 1;
+        }
+        if (this.#nextMessageIndex === this.#messageEndIndex) {
+          this.cleanupCallback();
+        }
+      } else {
+        this.#pendingMessages[index] = message;
+      }
+    });
+  }
+  cleanupCallback() {
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -19,8 +51,11 @@ var Channel = class {
   get onmessage() {
     return this.#onmessage;
   }
-  toJSON() {
+  [SERIALIZE_TO_IPC_FN]() {
     return `__CHANNEL__:${this.id}`;
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
   }
 };
 var PluginListener = class {
@@ -40,11 +75,17 @@ var PluginListener = class {
   }
 };
 async function addPluginListener(plugin, event, cb) {
-  const handler = new Channel();
-  handler.onmessage = cb;
-  return invoke(`plugin:${plugin}|register_listener`, { event, handler }).then(
-    () => new PluginListener(plugin, event, handler.id)
-  );
+  const handler = new Channel(cb);
+  try {
+    await invoke(`plugin:${plugin}|register_listener`, {
+      event,
+      handler
+    });
+    return new PluginListener(plugin, event, handler.id);
+  } catch {
+    await invoke(`plugin:${plugin}|registerListener`, { event, handler });
+    return new PluginListener(plugin, event, handler.id);
+  }
 }
 async function invoke(cmd, args = {}, options) {
   return window.__TAURI_INTERNALS__.invoke(cmd, args, options);
@@ -101,12 +142,12 @@ var Visibility = /* @__PURE__ */ ((Visibility2) => {
 })(Visibility || {});
 async function isPermissionGranted() {
   if (window.Notification.permission !== "default") {
-    return Promise.resolve(window.Notification.permission === "granted");
+    return await Promise.resolve(window.Notification.permission === "granted");
   }
-  return invoke("plugin:notification|is_permission_granted");
+  return await invoke("plugin:notification|is_permission_granted");
 }
 async function requestPermission() {
-  return window.Notification.requestPermission();
+  return await window.Notification.requestPermission();
 }
 function sendNotification(options) {
   if (typeof options === "string") {
@@ -116,40 +157,40 @@ function sendNotification(options) {
   }
 }
 async function registerActionTypes(types) {
-  return invoke("plugin:notification|register_action_types", { types });
+  await invoke("plugin:notification|register_action_types", { types });
 }
 async function pending() {
-  return invoke("plugin:notification|get_pending");
+  return await invoke("plugin:notification|get_pending");
 }
 async function cancel(notifications) {
-  return invoke("plugin:notification|cancel", { notifications });
+  await invoke("plugin:notification|cancel", { notifications });
 }
 async function cancelAll() {
-  return invoke("plugin:notification|cancel");
+  await invoke("plugin:notification|cancel");
 }
 async function active() {
-  return invoke("plugin:notification|get_active");
+  return await invoke("plugin:notification|get_active");
 }
 async function removeActive(notifications) {
-  return invoke("plugin:notification|remove_active", { notifications });
+  await invoke("plugin:notification|remove_active", { notifications });
 }
 async function removeAllActive() {
-  return invoke("plugin:notification|remove_active");
+  await invoke("plugin:notification|remove_active");
 }
 async function createChannel(channel) {
-  return invoke("plugin:notification|create_channel", { ...channel });
+  await invoke("plugin:notification|create_channel", { ...channel });
 }
 async function removeChannel(id) {
-  return invoke("plugin:notification|delete_channel", { id });
+  await invoke("plugin:notification|delete_channel", { id });
 }
 async function channels() {
-  return invoke("plugin:notification|listChannels");
+  return await invoke("plugin:notification|listChannels");
 }
 async function onNotificationReceived(cb) {
-  return addPluginListener("notification", "notification", cb);
+  return await addPluginListener("notification", "notification", cb);
 }
 async function onAction(cb) {
-  return addPluginListener("notification", "actionPerformed", cb);
+  return await addPluginListener("notification", "actionPerformed", cb);
 }
 export {
   Importance,

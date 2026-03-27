@@ -1,17 +1,49 @@
-// tauri-v2/tooling/api/src/core.ts
+// tauri-v2/packages/api/src/core.ts
+var SERIALIZE_TO_IPC_FN = "__TAURI_TO_IPC_KEY__";
 function transformCallback(callback, once = false) {
   return window.__TAURI_INTERNALS__.transformCallback(callback, once);
 }
 var Channel = class {
+  /** The callback id returned from {@linkcode transformCallback} */
   id;
-  // @ts-expect-error field used by the IPC serializer
-  __TAURI_CHANNEL_MARKER__ = true;
-  #onmessage = () => {
-  };
-  constructor() {
-    this.id = transformCallback((response) => {
-      this.#onmessage(response);
+  #onmessage;
+  // the index is used as a mechanism to preserve message order
+  #nextMessageIndex = 0;
+  #pendingMessages = [];
+  #messageEndIndex;
+  constructor(onmessage) {
+    this.#onmessage = onmessage || (() => {
     });
+    this.id = transformCallback((rawMessage) => {
+      const index = rawMessage.index;
+      if ("end" in rawMessage) {
+        if (index == this.#nextMessageIndex) {
+          this.cleanupCallback();
+        } else {
+          this.#messageEndIndex = index;
+        }
+        return;
+      }
+      const message = rawMessage.message;
+      if (index == this.#nextMessageIndex) {
+        this.#onmessage(message);
+        this.#nextMessageIndex += 1;
+        while (this.#nextMessageIndex in this.#pendingMessages) {
+          const message2 = this.#pendingMessages[this.#nextMessageIndex];
+          this.#onmessage(message2);
+          delete this.#pendingMessages[this.#nextMessageIndex];
+          this.#nextMessageIndex += 1;
+        }
+        if (this.#nextMessageIndex === this.#messageEndIndex) {
+          this.cleanupCallback();
+        }
+      } else {
+        this.#pendingMessages[index] = message;
+      }
+    });
+  }
+  cleanupCallback() {
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -19,8 +51,11 @@ var Channel = class {
   get onmessage() {
     return this.#onmessage;
   }
-  toJSON() {
+  [SERIALIZE_TO_IPC_FN]() {
     return `__CHANNEL__:${this.id}`;
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
   }
 };
 async function invoke(cmd, args = {}, options) {
@@ -34,10 +69,12 @@ var WebSocket = class _WebSocket {
     this.listeners = listeners;
   }
   static async connect(url, config) {
-    const listeners = [];
+    const listeners = /* @__PURE__ */ new Set();
     const onMessage = new Channel();
     onMessage.onmessage = (message) => {
-      listeners.forEach((l) => l(message));
+      listeners.forEach((l) => {
+        l(message);
+      });
     };
     if (config?.headers) {
       config.headers = Array.from(new Headers(config.headers).entries());
@@ -49,7 +86,10 @@ var WebSocket = class _WebSocket {
     }).then((id) => new _WebSocket(id, listeners));
   }
   addListener(cb) {
-    this.listeners.push(cb);
+    this.listeners.add(cb);
+    return () => {
+      this.listeners.delete(cb);
+    };
   }
   async send(message) {
     let m;
@@ -64,13 +104,13 @@ var WebSocket = class _WebSocket {
         "invalid `message` type, expected a `{ type: string, data: any }` object, a string or a numeric array"
       );
     }
-    return await invoke("plugin:websocket|send", {
+    await invoke("plugin:websocket|send", {
       id: this.id,
       message: m
     });
   }
   async disconnect() {
-    return await this.send({
+    await this.send({
       type: "Close",
       data: {
         code: 1e3,

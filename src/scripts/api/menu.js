@@ -1,26 +1,59 @@
-// tauri-v2/tooling/api/src/core.ts
-function transformCallback(callback, once2 = false) {
-  return window.__TAURI_INTERNALS__.transformCallback(callback, once2);
+// tauri-v2/packages/api/src/core.ts
+var SERIALIZE_TO_IPC_FN = "__TAURI_TO_IPC_KEY__";
+function transformCallback(callback, once = false) {
+  return window.__TAURI_INTERNALS__.transformCallback(callback, once);
 }
 var Channel = class {
-  constructor() {
-    // @ts-expect-error field used by the IPC serializer
-    this.__TAURI_CHANNEL_MARKER__ = true;
-    this.#onmessage = () => {
-    };
-    this.id = transformCallback((response) => {
-      this.#onmessage(response);
+  #onmessage;
+  // the index is used as a mechanism to preserve message order
+  #nextMessageIndex = 0;
+  #pendingMessages = [];
+  #messageEndIndex;
+  constructor(onmessage) {
+    this.#onmessage = onmessage || (() => {
+    });
+    this.id = transformCallback((rawMessage) => {
+      const index = rawMessage.index;
+      if ("end" in rawMessage) {
+        if (index == this.#nextMessageIndex) {
+          this.cleanupCallback();
+        } else {
+          this.#messageEndIndex = index;
+        }
+        return;
+      }
+      const message = rawMessage.message;
+      if (index == this.#nextMessageIndex) {
+        this.#onmessage(message);
+        this.#nextMessageIndex += 1;
+        while (this.#nextMessageIndex in this.#pendingMessages) {
+          const message2 = this.#pendingMessages[this.#nextMessageIndex];
+          this.#onmessage(message2);
+          delete this.#pendingMessages[this.#nextMessageIndex];
+          this.#nextMessageIndex += 1;
+        }
+        if (this.#nextMessageIndex === this.#messageEndIndex) {
+          this.cleanupCallback();
+        }
+      } else {
+        this.#pendingMessages[index] = message;
+      }
     });
   }
-  #onmessage;
+  cleanupCallback() {
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
+  }
   set onmessage(handler) {
     this.#onmessage = handler;
   }
   get onmessage() {
     return this.#onmessage;
   }
-  toJSON() {
+  [SERIALIZE_TO_IPC_FN]() {
     return `__CHANNEL__:${this.id}`;
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
   }
 };
 async function invoke(cmd, args = {}, options) {
@@ -45,7 +78,76 @@ var Resource = class {
   }
 };
 
-// tauri-v2/tooling/api/src/menu/base.ts
+// tauri-v2/packages/api/src/image.ts
+var Image = class _Image extends Resource {
+  /**
+   * Creates an Image from a resource ID. For internal use only.
+   *
+   * @ignore
+   */
+  constructor(rid) {
+    super(rid);
+  }
+  /** Creates a new Image using RGBA data, in row-major order from top to bottom, and with specified width and height. */
+  static async new(rgba, width, height) {
+    return invoke("plugin:image|new", {
+      rgba: transformImage(rgba),
+      width,
+      height
+    }).then((rid) => new _Image(rid));
+  }
+  /**
+   * Creates a new image using the provided bytes by inferring the file format.
+   * If the format is known, prefer [@link Image.fromPngBytes] or [@link Image.fromIcoBytes].
+   *
+   * Only `ico` and `png` are supported (based on activated feature flag).
+   *
+   * Note that you need the `image-ico` or `image-png` Cargo features to use this API.
+   * To enable it, change your Cargo.toml file:
+   * ```toml
+   * [dependencies]
+   * tauri = { version = "...", features = ["...", "image-png"] }
+   * ```
+   */
+  static async fromBytes(bytes) {
+    return invoke("plugin:image|from_bytes", {
+      bytes: transformImage(bytes)
+    }).then((rid) => new _Image(rid));
+  }
+  /**
+   * Creates a new image using the provided path.
+   *
+   * Only `ico` and `png` are supported (based on activated feature flag).
+   *
+   * Note that you need the `image-ico` or `image-png` Cargo features to use this API.
+   * To enable it, change your Cargo.toml file:
+   * ```toml
+   * [dependencies]
+   * tauri = { version = "...", features = ["...", "image-png"] }
+   * ```
+   */
+  static async fromPath(path) {
+    return invoke("plugin:image|from_path", { path }).then(
+      (rid) => new _Image(rid)
+    );
+  }
+  /** Returns the RGBA data for this image, in row-major order from top to bottom.  */
+  async rgba() {
+    return invoke("plugin:image|rgba", {
+      rid: this.rid
+    }).then((buffer) => new Uint8Array(buffer));
+  }
+  /** Returns the size of this image.  */
+  async size() {
+    return invoke("plugin:image|size", { rid: this.rid });
+  }
+};
+function transformImage(image) {
+  const ret = image == null ? null : typeof image === "string" ? image : image instanceof Image ? image.rid : image;
+  return ret;
+}
+
+// tauri-v2/packages/api/src/menu/base.ts
 function injectChannel(i) {
   if ("items" in i) {
     i.items = i.items?.map(
@@ -61,24 +163,40 @@ function injectChannel(i) {
 }
 async function newMenu(kind, opts) {
   const handler = new Channel();
-  let items = null;
   if (opts && typeof opts === "object") {
     if ("action" in opts && opts.action) {
       handler.onmessage = opts.action;
       delete opts.action;
     }
+    if ("item" in opts && opts.item && typeof opts.item === "object" && "About" in opts.item && opts.item.About && typeof opts.item.About === "object" && "icon" in opts.item.About && opts.item.About.icon) {
+      opts.item.About.icon = transformImage(opts.item.About.icon);
+    }
+    if ("icon" in opts && opts.icon) {
+      opts.icon = transformImage(opts.icon);
+    }
     if ("items" in opts && opts.items) {
-      items = opts.items.map((i) => {
+      let prepareItem2 = function(i) {
         if ("rid" in i) {
           return [i.rid, i.kind];
         }
+        if ("item" in i && typeof i.item === "object" && i.item.About?.icon) {
+          i.item.About.icon = transformImage(i.item.About.icon);
+        }
+        if ("icon" in i && i.icon) {
+          i.icon = transformImage(i.icon);
+        }
+        if ("items" in i && i.items) {
+          i.items = i.items.map(prepareItem2);
+        }
         return injectChannel(i);
-      });
+      };
+      var prepareItem = prepareItem2;
+      opts.items = opts.items.map(prepareItem2);
     }
   }
   return invoke("plugin:menu|new", {
     kind,
-    options: opts ? { ...opts, items } : void 0,
+    options: opts,
     handler
   });
 }
@@ -103,7 +221,7 @@ var MenuItemBase = class extends Resource {
   }
 };
 
-// tauri-v2/tooling/api/src/menu/menuItem.ts
+// tauri-v2/packages/api/src/menu/menuItem.ts
 var MenuItem = class _MenuItem extends MenuItemBase {
   /** @ignore */
   constructor(rid, id) {
@@ -147,7 +265,7 @@ var MenuItem = class _MenuItem extends MenuItemBase {
   }
 };
 
-// tauri-v2/tooling/api/src/menu/checkMenuItem.ts
+// tauri-v2/packages/api/src/menu/checkMenuItem.ts
 var CheckMenuItem = class _CheckMenuItem extends MenuItemBase {
   /** @ignore */
   constructor(rid, id) {
@@ -204,7 +322,7 @@ var CheckMenuItem = class _CheckMenuItem extends MenuItemBase {
   }
 };
 
-// tauri-v2/tooling/api/src/menu/iconMenuItem.ts
+// tauri-v2/packages/api/src/menu/iconMenuItem.ts
 var NativeIcon = /* @__PURE__ */ ((NativeIcon2) => {
   NativeIcon2["Add"] = "Add";
   NativeIcon2["Advanced"] = "Advanced";
@@ -307,11 +425,15 @@ var IconMenuItem = class _IconMenuItem extends MenuItemBase {
   }
   /** Sets an icon for this icon menu item */
   async setIcon(icon) {
-    return invoke("plugin:menu|set_icon", { rid: this.rid, icon });
+    return invoke("plugin:menu|set_icon", {
+      rid: this.rid,
+      kind: this.kind,
+      icon: transformImage(icon)
+    });
   }
 };
 
-// tauri-v2/tooling/api/src/menu/predefinedMenuItem.ts
+// tauri-v2/packages/api/src/menu/predefinedMenuItem.ts
 var PredefinedMenuItem = class _PredefinedMenuItem extends MenuItemBase {
   /** @ignore */
   constructor(rid, id) {
@@ -337,37 +459,225 @@ var PredefinedMenuItem = class _PredefinedMenuItem extends MenuItemBase {
   }
 };
 
-// tauri-v2/tooling/api/src/dpi.ts
-var LogicalPosition = class {
-  constructor(x, y) {
+// tauri-v2/packages/api/src/dpi.ts
+var LogicalSize = class {
+  constructor(...args) {
     this.type = "Logical";
-    this.x = x;
-    this.y = y;
+    if (args.length === 1) {
+      if ("Logical" in args[0]) {
+        this.width = args[0].Logical.width;
+        this.height = args[0].Logical.height;
+      } else {
+        this.width = args[0].width;
+        this.height = args[0].height;
+      }
+    } else {
+      this.width = args[0];
+      this.height = args[1];
+    }
+  }
+  /**
+   * Converts the logical size to a physical one.
+   * @example
+   * ```typescript
+   * import { LogicalSize } from '@tauri-apps/api/dpi';
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   *
+   * const appWindow = getCurrentWindow();
+   * const factor = await appWindow.scaleFactor();
+   * const size = new LogicalSize(400, 500);
+   * const physical = size.toPhysical(factor);
+   * ```
+   *
+   * @since 2.0.0
+   */
+  toPhysical(scaleFactor) {
+    return new PhysicalSize(this.width * scaleFactor, this.height * scaleFactor);
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return {
+      width: this.width,
+      height: this.height
+    };
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
+var PhysicalSize = class {
+  constructor(...args) {
+    this.type = "Physical";
+    if (args.length === 1) {
+      if ("Physical" in args[0]) {
+        this.width = args[0].Physical.width;
+        this.height = args[0].Physical.height;
+      } else {
+        this.width = args[0].width;
+        this.height = args[0].height;
+      }
+    } else {
+      this.width = args[0];
+      this.height = args[1];
+    }
+  }
+  /**
+   * Converts the physical size to a logical one.
+   * @example
+   * ```typescript
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   * const appWindow = getCurrentWindow();
+   * const factor = await appWindow.scaleFactor();
+   * const size = await appWindow.innerSize(); // PhysicalSize
+   * const logical = size.toLogical(factor);
+   * ```
+   */
+  toLogical(scaleFactor) {
+    return new LogicalSize(this.width / scaleFactor, this.height / scaleFactor);
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return {
+      width: this.width,
+      height: this.height
+    };
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
+var Size = class {
+  constructor(size) {
+    this.size = size;
+  }
+  toLogical(scaleFactor) {
+    return this.size instanceof LogicalSize ? this.size : this.size.toLogical(scaleFactor);
+  }
+  toPhysical(scaleFactor) {
+    return this.size instanceof PhysicalSize ? this.size : this.size.toPhysical(scaleFactor);
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return {
+      [`${this.size.type}`]: {
+        width: this.size.width,
+        height: this.size.height
+      }
+    };
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
+var LogicalPosition = class {
+  constructor(...args) {
+    this.type = "Logical";
+    if (args.length === 1) {
+      if ("Logical" in args[0]) {
+        this.x = args[0].Logical.x;
+        this.y = args[0].Logical.y;
+      } else {
+        this.x = args[0].x;
+        this.y = args[0].y;
+      }
+    } else {
+      this.x = args[0];
+      this.y = args[1];
+    }
+  }
+  /**
+   * Converts the logical position to a physical one.
+   * @example
+   * ```typescript
+   * import { LogicalPosition } from '@tauri-apps/api/dpi';
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   *
+   * const appWindow = getCurrentWindow();
+   * const factor = await appWindow.scaleFactor();
+   * const position = new LogicalPosition(400, 500);
+   * const physical = position.toPhysical(factor);
+   * ```
+   *
+   * @since 2.0.0
+   */
+  toPhysical(scaleFactor) {
+    return new PhysicalPosition(this.x * scaleFactor, this.y * scaleFactor);
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return {
+      x: this.x,
+      y: this.y
+    };
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
   }
 };
 var PhysicalPosition = class {
-  constructor(x, y) {
+  constructor(...args) {
     this.type = "Physical";
-    this.x = x;
-    this.y = y;
+    if (args.length === 1) {
+      if ("Physical" in args[0]) {
+        this.x = args[0].Physical.x;
+        this.y = args[0].Physical.y;
+      } else {
+        this.x = args[0].x;
+        this.y = args[0].y;
+      }
+    } else {
+      this.x = args[0];
+      this.y = args[1];
+    }
   }
   /**
    * Converts the physical position to a logical one.
    * @example
    * ```typescript
-   * import { getCurrent } from '@tauri-apps/api/window';
-   * const appWindow = getCurrent();
+   * import { PhysicalPosition } from '@tauri-apps/api/dpi';
+   * import { getCurrentWindow } from '@tauri-apps/api/window';
+   *
+   * const appWindow = getCurrentWindow();
    * const factor = await appWindow.scaleFactor();
-   * const position = await appWindow.innerPosition();
-   * const logical = position.toLogical(factor);
+   * const position = new PhysicalPosition(400, 500);
+   * const physical = position.toLogical(factor);
    * ```
-   * */
+   *
+   * @since 2.0.0
+   */
   toLogical(scaleFactor) {
     return new LogicalPosition(this.x / scaleFactor, this.y / scaleFactor);
   }
+  [SERIALIZE_TO_IPC_FN]() {
+    return {
+      x: this.x,
+      y: this.y
+    };
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
+};
+var Position = class {
+  constructor(position) {
+    this.position = position;
+  }
+  toLogical(scaleFactor) {
+    return this.position instanceof LogicalPosition ? this.position : this.position.toLogical(scaleFactor);
+  }
+  toPhysical(scaleFactor) {
+    return this.position instanceof PhysicalPosition ? this.position : this.position.toPhysical(scaleFactor);
+  }
+  [SERIALIZE_TO_IPC_FN]() {
+    return {
+      [`${this.position.type}`]: {
+        x: this.position.x,
+        y: this.position.y
+      }
+    };
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
+  }
 };
 
-// tauri-v2/tooling/api/src/menu/submenu.ts
+// tauri-v2/packages/api/src/menu/submenu.ts
 function itemFromKind([rid, id, kind]) {
   switch (kind) {
     case "Submenu":
@@ -419,7 +729,7 @@ var Submenu = class _Submenu extends MenuItemBase {
   /**
    * Add a menu item to the end of this submenu.
    *
-   * ## Platform-spcific:
+   * #### Platform-specific:
    *
    * - **macOS:** Only {@linkcode Submenu}s can be added to a {@linkcode Menu}.
    */
@@ -435,7 +745,7 @@ var Submenu = class _Submenu extends MenuItemBase {
   /**
    * Add a menu item to the beginning of this submenu.
    *
-   * ## Platform-spcific:
+   * #### Platform-specific:
    *
    * - **macOS:** Only {@linkcode Submenu}s can be added to a {@linkcode Menu}.
    */
@@ -451,7 +761,7 @@ var Submenu = class _Submenu extends MenuItemBase {
   /**
    * Add a menu item to the specified position in this submenu.
    *
-   * ## Platform-spcific:
+   * #### Platform-specific:
    *
    * - **macOS:** Only {@linkcode Submenu}s can be added to a {@linkcode Menu}.
    */
@@ -502,18 +812,11 @@ var Submenu = class _Submenu extends MenuItemBase {
    * If the position, is provided, it is relative to the window's top-left corner.
    */
   async popup(at, window2) {
-    let atValue = null;
-    if (at) {
-      atValue = {
-        type: at instanceof PhysicalPosition ? "Physical" : "Logical",
-        data: at
-      };
-    }
     return invoke("plugin:menu|popup", {
       rid: this.rid,
       kind: this.kind,
       window: window2?.label ?? null,
-      at: atValue
+      at: at instanceof Position ? at : at ? new Position(at) : null
     });
   }
   /**
@@ -548,24 +851,17 @@ var Submenu = class _Submenu extends MenuItemBase {
       rid: this.rid
     });
   }
+  /** Sets an icon for this submenu */
+  async setIcon(icon) {
+    return invoke("plugin:menu|set_icon", {
+      rid: this.rid,
+      kind: this.kind,
+      icon: transformImage(icon)
+    });
+  }
 };
 
-// tauri-v2/tooling/api/src/menu/menu.ts
-function itemFromKind2([rid, id, kind]) {
-  switch (kind) {
-    case "Submenu":
-      return new Submenu(rid, id);
-    case "Predefined":
-      return new PredefinedMenuItem(rid, id);
-    case "Check":
-      return new CheckMenuItem(rid, id);
-    case "Icon":
-      return new IconMenuItem(rid, id);
-    case "MenuItem":
-    default:
-      return new MenuItem(rid, id);
-  }
-}
+// tauri-v2/packages/api/src/menu/menu.ts
 var Menu = class _Menu extends MenuItemBase {
   /** @ignore */
   constructor(rid, id) {
@@ -584,7 +880,7 @@ var Menu = class _Menu extends MenuItemBase {
   /**
    * Add a menu item to the end of this menu.
    *
-   * ## Platform-spcific:
+   * #### Platform-specific:
    *
    * - **macOS:** Only {@linkcode Submenu}s can be added to a {@linkcode Menu}.
    */
@@ -600,7 +896,7 @@ var Menu = class _Menu extends MenuItemBase {
   /**
    * Add a menu item to the beginning of this menu.
    *
-   * ## Platform-spcific:
+   * #### Platform-specific:
    *
    * - **macOS:** Only {@linkcode Submenu}s can be added to a {@linkcode Menu}.
    */
@@ -616,7 +912,7 @@ var Menu = class _Menu extends MenuItemBase {
   /**
    * Add a menu item to the specified position in this menu.
    *
-   * ## Platform-spcific:
+   * #### Platform-specific:
    *
    * - **macOS:** Only {@linkcode Submenu}s can be added to a {@linkcode Menu}.
    */
@@ -644,14 +940,14 @@ var Menu = class _Menu extends MenuItemBase {
       rid: this.rid,
       kind: this.kind,
       position
-    }).then(itemFromKind2);
+    }).then(itemFromKind);
   }
   /** Returns a list of menu items that has been added to this menu. */
   async items() {
     return invoke("plugin:menu|items", {
       rid: this.rid,
       kind: this.kind
-    }).then((i) => i.map(itemFromKind2));
+    }).then((i) => i.map(itemFromKind));
   }
   /** Retrieves the menu item matching the given identifier. */
   async get(id) {
@@ -659,26 +955,20 @@ var Menu = class _Menu extends MenuItemBase {
       rid: this.rid,
       kind: this.kind,
       id
-    }).then((r) => r ? itemFromKind2(r) : null);
+    }).then((r) => r ? itemFromKind(r) : null);
   }
   /**
    * Popup this menu as a context menu on the specified window.
    *
-   * If the position, is provided, it is relative to the window's top-left corner.
+   * @param at If a position is provided, it is relative to the window's top-left corner.
+   * If there isn't one provided, the menu will pop up at the current location of the mouse.
    */
   async popup(at, window2) {
-    let atValue = null;
-    if (at) {
-      atValue = {
-        type: at instanceof PhysicalPosition ? "Physical" : "Logical",
-        data: at
-      };
-    }
     return invoke("plugin:menu|popup", {
       rid: this.rid,
       kind: this.kind,
       window: window2?.label ?? null,
-      at: atValue
+      at: at instanceof Position ? at : at ? new Position(at) : null
     });
   }
   /**
@@ -714,5 +1004,6 @@ export {
   MenuItem,
   NativeIcon,
   PredefinedMenuItem,
-  Submenu
+  Submenu,
+  itemFromKind
 };

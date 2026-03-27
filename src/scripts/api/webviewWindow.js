@@ -2606,8 +2606,185 @@ var Webview = class {
     };
   }
 };
+
+// tauri-v2/packages/api/src/webviewWindow.ts
+function getCurrentWebviewWindow() {
+  const webview = getCurrentWebview();
+  return new WebviewWindow(webview.label, { skip: true });
+}
+async function getAllWebviewWindows() {
+  return invoke("plugin:window|get_all_windows").then(
+    (windows) => windows.map(
+      (w) => new WebviewWindow(w, {
+        // @ts-expect-error `skip` is not defined in the public API but it is handled by the constructor
+        skip: true
+      })
+    )
+  );
+}
+var WebviewWindow = class _WebviewWindow {
+  /**
+   * Creates a new {@link Window} hosting a {@link Webview}.
+   * @example
+   * ```typescript
+   * import { WebviewWindow } from '@tauri-apps/api/webviewWindow'
+   * const webview = new WebviewWindow('my-label', {
+   *   url: 'https://github.com/tauri-apps/tauri'
+   * });
+   * webview.once('tauri://created', function () {
+   *  // webview successfully created
+   * });
+   * webview.once('tauri://error', function (e) {
+   *  // an error happened creating the webview
+   * });
+   * ```
+   *
+   * @param label The unique webview label. Must be alphanumeric: `a-zA-Z-/:_`.
+   * @returns The {@link WebviewWindow} instance to communicate with the window and webview.
+   */
+  constructor(label, options = {}) {
+    this.label = label;
+    this.listeners = /* @__PURE__ */ Object.create(null);
+    if (!options?.skip) {
+      invoke("plugin:webview|create_webview_window", {
+        options: {
+          ...options,
+          parent: typeof options.parent === "string" ? options.parent : options.parent?.label,
+          label
+        }
+      }).then(async () => this.emit("tauri://created")).catch(async (e) => this.emit("tauri://error", e));
+    }
+  }
+  /**
+   * Gets the Webview for the webview associated with the given label.
+   * @example
+   * ```typescript
+   * import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+   * const mainWebview = WebviewWindow.getByLabel('main');
+   * ```
+   *
+   * @param label The webview label.
+   * @returns The Webview instance to communicate with the webview or null if the webview doesn't exist.
+   */
+  static async getByLabel(label) {
+    const webview = (await getAllWebviewWindows()).find((w) => w.label === label) ?? null;
+    if (webview) {
+      return new _WebviewWindow(webview.label, { skip: true });
+    }
+    return null;
+  }
+  /**
+   * Get an instance of `Webview` for the current webview.
+   */
+  static getCurrent() {
+    return getCurrentWebviewWindow();
+  }
+  /**
+   * Gets a list of instances of `Webview` for all available webviews.
+   */
+  static async getAll() {
+    return getAllWebviewWindows();
+  }
+  /**
+   * Listen to an emitted event on this webview window.
+   *
+   * @example
+   * ```typescript
+   * import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+   * const unlisten = await WebviewWindow.getCurrent().listen<string>('state-changed', (event) => {
+   *   console.log(`Got error: ${payload}`);
+   * });
+   *
+   * // you need to call unlisten if your handler goes out of scope e.g. the component is unmounted
+   * unlisten();
+   * ```
+   *
+   * @param event Event name. Must include only alphanumeric characters, `-`, `/`, `:` and `_`.
+   * @param handler Event handler.
+   * @returns A promise resolving to a function to unlisten to the event.
+   * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
+   */
+  async listen(event, handler) {
+    if (this._handleTauriEvent(event, handler)) {
+      return () => {
+        const listeners = this.listeners[event];
+        listeners.splice(listeners.indexOf(handler), 1);
+      };
+    }
+    return listen(event, handler, {
+      target: { kind: "WebviewWindow", label: this.label }
+    });
+  }
+  /**
+   * Listen to an emitted event on this webview window only once.
+   *
+   * @example
+   * ```typescript
+   * import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+   * const unlisten = await WebviewWindow.getCurrent().once<null>('initialized', (event) => {
+   *   console.log(`Webview initialized!`);
+   * });
+   *
+   * // you need to call unlisten if your handler goes out of scope e.g. the component is unmounted
+   * unlisten();
+   * ```
+   *
+   * @param event Event name. Must include only alphanumeric characters, `-`, `/`, `:` and `_`.
+   * @param handler Event handler.
+   * @returns A promise resolving to a function to unlisten to the event.
+   * Note that removing the listener is required if your listener goes out of scope e.g. the component is unmounted.
+   */
+  async once(event, handler) {
+    if (this._handleTauriEvent(event, handler)) {
+      return () => {
+        const listeners = this.listeners[event];
+        listeners.splice(listeners.indexOf(handler), 1);
+      };
+    }
+    return once(event, handler, {
+      target: { kind: "WebviewWindow", label: this.label }
+    });
+  }
+  /**
+   * Set the window and webview background color.
+   *
+   * #### Platform-specific:
+   *
+   * - **Android / iOS:** Unsupported for the window layer.
+   * - **macOS / iOS**: Not implemented for the webview layer.
+   * - **Windows**:
+   *   - alpha channel is ignored for the window layer.
+   *   - On Windows 7, alpha channel is ignored for the webview layer.
+   *   - On Windows 8 and newer, if alpha channel is not `0`, it will be ignored.
+   *
+   * @returns A promise indicating the success or failure of the operation.
+   *
+   * @since 2.1.0
+   */
+  async setBackgroundColor(color) {
+    return invoke("plugin:window|set_background_color", { color }).then(() => {
+      return invoke("plugin:webview|set_webview_background_color", { color });
+    });
+  }
+};
+applyMixins(WebviewWindow, [Window, Webview]);
+function applyMixins(baseClass, extendedClasses) {
+  ;
+  (Array.isArray(extendedClasses) ? extendedClasses : [extendedClasses]).forEach((extendedClass) => {
+    Object.getOwnPropertyNames(extendedClass.prototype).forEach((name) => {
+      if (typeof baseClass.prototype === "object" && baseClass.prototype && name in baseClass.prototype)
+        return;
+      Object.defineProperty(
+        baseClass.prototype,
+        name,
+        // eslint-disable-next-line
+        Object.getOwnPropertyDescriptor(extendedClass.prototype, name) ?? /* @__PURE__ */ Object.create(null)
+      );
+    });
+  });
+}
 export {
-  Webview,
-  getAllWebviews,
-  getCurrentWebview
+  WebviewWindow,
+  getAllWebviewWindows,
+  getCurrentWebviewWindow
 };

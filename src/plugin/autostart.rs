@@ -1,5 +1,7 @@
-//! Disable and enable autostart
-//!
+//! 
+//! Version: **autostart-v2.0.0-rc.0**
+//! 
+//! link to plugin: [tauri-plugin-autostart](https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/autostart)
 //!
 
 /// Returns a bool checking if autostart is enabled.

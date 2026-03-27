@@ -1,28 +1,7 @@
-//! Register global shortcuts.
-//!
-//! ## Differences to the JavaScript API
-//!
-//! ## `registerAll`
-//!
-//! ```rust,no_run
-//! # async fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! let shortcuts = ["CommandOrControl+Shift+C", "Ctrl+Alt+F12"];
-//!
-//! let streams = futures::future::try_join_all(shortcuts.map(|s| async move {
-//!     let stream = global_shortcut::register(s).await?;
-//!
-//!     anyhow::Ok(stream.map(move |_| s))
-//! }))
-//! .await?;
-//!
-//! let mut events = futures::stream::select_all(streams);
-//!
-//! while let Some(shortcut) = events.next().await {
-//!     log::debug!("Shortcut {} triggered", shortcut)
-//! }
-//! # Ok(())
-//! # }
-//! ```
+//! 
+//! Version: **global-shortcut-v2.0.0-rc.0**
+//! 
+//! link to plugin: [tauri-plugin-global-shortcut](https://github.com/tauri-apps/plugins-workspace/tree/v2/plugins/global-shortcut)
 //!
 
 use crate::js::console;

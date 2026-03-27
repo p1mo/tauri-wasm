@@ -1,26 +1,59 @@
-// tauri-v2/tooling/api/src/core.ts
+// tauri-v2/packages/api/src/core.ts
+var SERIALIZE_TO_IPC_FN = "__TAURI_TO_IPC_KEY__";
 function transformCallback(callback, once = false) {
   return window.__TAURI_INTERNALS__.transformCallback(callback, once);
 }
 var Channel = class {
-  constructor() {
-    // @ts-expect-error field used by the IPC serializer
-    this.__TAURI_CHANNEL_MARKER__ = true;
-    this.#onmessage = () => {
-    };
-    this.id = transformCallback((response) => {
-      this.#onmessage(response);
+  #onmessage;
+  // the index is used as a mechanism to preserve message order
+  #nextMessageIndex = 0;
+  #pendingMessages = [];
+  #messageEndIndex;
+  constructor(onmessage) {
+    this.#onmessage = onmessage || (() => {
+    });
+    this.id = transformCallback((rawMessage) => {
+      const index = rawMessage.index;
+      if ("end" in rawMessage) {
+        if (index == this.#nextMessageIndex) {
+          this.cleanupCallback();
+        } else {
+          this.#messageEndIndex = index;
+        }
+        return;
+      }
+      const message = rawMessage.message;
+      if (index == this.#nextMessageIndex) {
+        this.#onmessage(message);
+        this.#nextMessageIndex += 1;
+        while (this.#nextMessageIndex in this.#pendingMessages) {
+          const message2 = this.#pendingMessages[this.#nextMessageIndex];
+          this.#onmessage(message2);
+          delete this.#pendingMessages[this.#nextMessageIndex];
+          this.#nextMessageIndex += 1;
+        }
+        if (this.#nextMessageIndex === this.#messageEndIndex) {
+          this.cleanupCallback();
+        }
+      } else {
+        this.#pendingMessages[index] = message;
+      }
     });
   }
-  #onmessage;
+  cleanupCallback() {
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
+  }
   set onmessage(handler) {
     this.#onmessage = handler;
   }
   get onmessage() {
     return this.#onmessage;
   }
-  toJSON() {
+  [SERIALIZE_TO_IPC_FN]() {
     return `__CHANNEL__:${this.id}`;
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
   }
 };
 var PluginListener = class {
@@ -37,11 +70,23 @@ var PluginListener = class {
   }
 };
 async function addPluginListener(plugin, event, cb) {
-  const handler = new Channel();
-  handler.onmessage = cb;
-  return invoke(`plugin:${plugin}|register_listener`, { event, handler }).then(
-    () => new PluginListener(plugin, event, handler.id)
-  );
+  const handler = new Channel(cb);
+  try {
+    await invoke(`plugin:${plugin}|register_listener`, {
+      event,
+      handler
+    });
+    return new PluginListener(plugin, event, handler.id);
+  } catch {
+    await invoke(`plugin:${plugin}|registerListener`, { event, handler });
+    return new PluginListener(plugin, event, handler.id);
+  }
+}
+async function checkPermissions(plugin) {
+  return invoke(`plugin:${plugin}|check_permissions`);
+}
+async function requestPermissions(plugin) {
+  return invoke(`plugin:${plugin}|request_permissions`);
 }
 async function invoke(cmd, args = {}, options) {
   return window.__TAURI_INTERNALS__.invoke(cmd, args, options);
@@ -67,12 +112,19 @@ var Resource = class {
     });
   }
 };
+function isTauri() {
+  return !!(globalThis || window).isTauri;
+}
 export {
   Channel,
   PluginListener,
   Resource,
+  SERIALIZE_TO_IPC_FN,
   addPluginListener,
+  checkPermissions,
   convertFileSrc,
   invoke,
+  isTauri,
+  requestPermissions,
   transformCallback
 };

@@ -1,17 +1,49 @@
-// tauri-v2/tooling/api/src/core.ts
+// tauri-v2/packages/api/src/core.ts
+var SERIALIZE_TO_IPC_FN = "__TAURI_TO_IPC_KEY__";
 function transformCallback(callback, once = false) {
   return window.__TAURI_INTERNALS__.transformCallback(callback, once);
 }
 var Channel = class {
+  /** The callback id returned from {@linkcode transformCallback} */
   id;
-  // @ts-expect-error field used by the IPC serializer
-  __TAURI_CHANNEL_MARKER__ = true;
-  #onmessage = () => {
-  };
-  constructor() {
-    this.id = transformCallback((response) => {
-      this.#onmessage(response);
+  #onmessage;
+  // the index is used as a mechanism to preserve message order
+  #nextMessageIndex = 0;
+  #pendingMessages = [];
+  #messageEndIndex;
+  constructor(onmessage) {
+    this.#onmessage = onmessage || (() => {
     });
+    this.id = transformCallback((rawMessage) => {
+      const index = rawMessage.index;
+      if ("end" in rawMessage) {
+        if (index == this.#nextMessageIndex) {
+          this.cleanupCallback();
+        } else {
+          this.#messageEndIndex = index;
+        }
+        return;
+      }
+      const message = rawMessage.message;
+      if (index == this.#nextMessageIndex) {
+        this.#onmessage(message);
+        this.#nextMessageIndex += 1;
+        while (this.#nextMessageIndex in this.#pendingMessages) {
+          const message2 = this.#pendingMessages[this.#nextMessageIndex];
+          this.#onmessage(message2);
+          delete this.#pendingMessages[this.#nextMessageIndex];
+          this.#nextMessageIndex += 1;
+        }
+        if (this.#nextMessageIndex === this.#messageEndIndex) {
+          this.cleanupCallback();
+        }
+      } else {
+        this.#pendingMessages[index] = message;
+      }
+    });
+  }
+  cleanupCallback() {
+    window.__TAURI_INTERNALS__.unregisterCallback(this.id);
   }
   set onmessage(handler) {
     this.#onmessage = handler;
@@ -19,8 +51,11 @@ var Channel = class {
   get onmessage() {
     return this.#onmessage;
   }
-  toJSON() {
+  [SERIALIZE_TO_IPC_FN]() {
     return `__CHANNEL__:${this.id}`;
+  }
+  toJSON() {
+    return this[SERIALIZE_TO_IPC_FN]();
   }
 };
 async function invoke(cmd, args = {}, options) {
@@ -28,19 +63,6 @@ async function invoke(cmd, args = {}, options) {
 }
 
 // tauri-plugins/plugins/shell/guest-js/index.ts
-async function execute(onEventHandler, program, args = [], options) {
-  if (typeof args === "object") {
-    Object.freeze(args);
-  }
-  const onEvent = new Channel();
-  onEvent.onmessage = onEventHandler;
-  return invoke("plugin:shell|execute", {
-    program,
-    args,
-    options,
-    onEvent
-  });
-}
 var EventEmitter = class {
   constructor() {
     /** @ignore */
@@ -209,10 +231,9 @@ var Child = class {
    * @since 2.0.0
    */
   async write(data) {
-    return invoke("plugin:shell|stdin_write", {
+    await invoke("plugin:shell|stdin_write", {
       pid: this.pid,
-      // correctly serialize Uint8Arrays
-      buffer: typeof data === "string" ? data : Array.from(data)
+      buffer: data
     });
   }
   /**
@@ -223,7 +244,7 @@ var Child = class {
    * @since 2.0.0
    */
   async kill() {
-    return invoke("plugin:shell|kill", {
+    await invoke("plugin:shell|kill", {
       cmd: "killChild",
       pid: this.pid
     });
@@ -235,7 +256,7 @@ var Command = class _Command extends EventEmitter {
    * Creates a new `Command` instance.
    *
    * @param program The program name to execute.
-   * It must be configured on `tauri.conf.json > plugins > shell > scope`.
+   * It must be configured in your project's capabilities.
    * @param args Program arguments.
    * @param options Spawn options.
    */
@@ -259,7 +280,7 @@ var Command = class _Command extends EventEmitter {
    * ```
    *
    * @param program The program to execute.
-   * It must be configured on `tauri.conf.json > plugins > shell > scope`.
+   * It must be configured in your project's capabilities.
    */
   static create(program, args = [], options) {
     return new _Command(program, args, options);
@@ -274,7 +295,7 @@ var Command = class _Command extends EventEmitter {
    * ```
    *
    * @param program The program to execute.
-   * It must be configured on `tauri.conf.json > plugins > shell > scope`.
+   * It must be configured in your project's capabilities.
    */
   static sidecar(program, args = [], options) {
     const instance = new _Command(program, args, options);
@@ -289,27 +310,35 @@ var Command = class _Command extends EventEmitter {
    * @since 2.0.0
    */
   async spawn() {
-    return execute(
-      (event) => {
-        switch (event.event) {
-          case "Error":
-            this.emit("error", event.payload);
-            break;
-          case "Terminated":
-            this.emit("close", event.payload);
-            break;
-          case "Stdout":
-            this.stdout.emit("data", event.payload);
-            break;
-          case "Stderr":
-            this.stderr.emit("data", event.payload);
-            break;
-        }
-      },
-      this.program,
-      this.args,
-      this.options
-    ).then((pid) => new Child(pid));
+    const program = this.program;
+    const args = this.args;
+    const options = this.options;
+    if (typeof args === "object") {
+      Object.freeze(args);
+    }
+    const onEvent = new Channel();
+    onEvent.onmessage = (event) => {
+      switch (event.event) {
+        case "Error":
+          this.emit("error", event.payload);
+          break;
+        case "Terminated":
+          this.emit("close", event.payload);
+          break;
+        case "Stdout":
+          this.stdout.emit("data", event.payload);
+          break;
+        case "Stderr":
+          this.stderr.emit("data", event.payload);
+          break;
+      }
+    };
+    return await invoke("plugin:shell|spawn", {
+      program,
+      args,
+      options,
+      onEvent
+    }).then((pid) => new Child(pid));
   }
   /**
    * Executes the command as a child process, waiting for it to finish and collecting all of its output.
@@ -328,40 +357,21 @@ var Command = class _Command extends EventEmitter {
    * @since 2.0.0
    */
   async execute() {
-    return new Promise((resolve, reject) => {
-      this.on("error", reject);
-      const stdout = [];
-      const stderr = [];
-      this.stdout.on("data", (line) => {
-        stdout.push(line);
-      });
-      this.stderr.on("data", (line) => {
-        stderr.push(line);
-      });
-      this.on("close", (payload) => {
-        resolve({
-          code: payload.code,
-          signal: payload.signal,
-          stdout: this.collectOutput(stdout),
-          stderr: this.collectOutput(stderr)
-        });
-      });
-      this.spawn().catch(reject);
-    });
-  }
-  /** @ignore */
-  collectOutput(events) {
-    if (this.options.encoding === "raw") {
-      return events.reduce((p, c) => {
-        return new Uint8Array([...p, ...c, 10]);
-      }, new Uint8Array());
-    } else {
-      return events.join("\n");
+    const program = this.program;
+    const args = this.args;
+    const options = this.options;
+    if (typeof args === "object") {
+      Object.freeze(args);
     }
+    return await invoke("plugin:shell|execute", {
+      program,
+      args,
+      options
+    });
   }
 };
 async function open(path, openWith) {
-  return invoke("plugin:shell|open", {
+  await invoke("plugin:shell|open", {
     path,
     with: openWith
   });

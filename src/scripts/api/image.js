@@ -56,32 +56,6 @@ var Channel = class {
     return this[SERIALIZE_TO_IPC_FN]();
   }
 };
-var PluginListener = class {
-  constructor(plugin, event, channelId) {
-    this.plugin = plugin;
-    this.event = event;
-    this.channelId = channelId;
-  }
-  async unregister() {
-    return invoke(`plugin:${this.plugin}|remove_listener`, {
-      event: this.event,
-      channelId: this.channelId
-    });
-  }
-};
-async function addPluginListener(plugin, event, cb) {
-  const handler = new Channel(cb);
-  try {
-    await invoke(`plugin:${plugin}|register_listener`, {
-      event,
-      handler
-    });
-    return new PluginListener(plugin, event, handler.id);
-  } catch {
-    await invoke(`plugin:${plugin}|registerListener`, { event, handler });
-    return new PluginListener(plugin, event, handler.id);
-  }
-}
 async function invoke(cmd, args = {}, options) {
   return window.__TAURI_INTERNALS__.invoke(cmd, args, options);
 }
@@ -172,75 +146,7 @@ function transformImage(image) {
   const ret = image == null ? null : typeof image === "string" ? image : image instanceof Image ? image.rid : image;
   return ret;
 }
-
-// tauri-v2/packages/api/src/app.ts
-var BundleType = /* @__PURE__ */ ((BundleType2) => {
-  BundleType2["Nsis"] = "nsis";
-  BundleType2["Msi"] = "msi";
-  BundleType2["Deb"] = "deb";
-  BundleType2["Rpm"] = "rpm";
-  BundleType2["AppImage"] = "appimage";
-  BundleType2["App"] = "app";
-  return BundleType2;
-})(BundleType || {});
-async function getVersion() {
-  return invoke("plugin:app|version");
-}
-async function getName() {
-  return invoke("plugin:app|name");
-}
-async function getTauriVersion() {
-  return invoke("plugin:app|tauri_version");
-}
-async function getIdentifier() {
-  return invoke("plugin:app|identifier");
-}
-async function show() {
-  return invoke("plugin:app|app_show");
-}
-async function hide() {
-  return invoke("plugin:app|app_hide");
-}
-async function fetchDataStoreIdentifiers() {
-  return invoke("plugin:app|fetch_data_store_identifiers");
-}
-async function removeDataStore(uuid) {
-  return invoke("plugin:app|remove_data_store", { uuid });
-}
-async function defaultWindowIcon() {
-  return invoke("plugin:app|default_window_icon").then(
-    (rid) => rid ? new Image(rid) : null
-  );
-}
-async function setTheme(theme) {
-  return invoke("plugin:app|set_app_theme", { theme });
-}
-async function setDockVisibility(visible) {
-  return invoke("plugin:app|set_dock_visibility", { visible });
-}
-async function getBundleType() {
-  return invoke("plugin:app|bundle_type");
-}
-async function onBackButtonPress(handler) {
-  return addPluginListener(
-    "app",
-    "back-button",
-    handler
-  );
-}
 export {
-  BundleType,
-  defaultWindowIcon,
-  fetchDataStoreIdentifiers,
-  getBundleType,
-  getIdentifier,
-  getName,
-  getTauriVersion,
-  getVersion,
-  hide,
-  onBackButtonPress,
-  removeDataStore,
-  setDockVisibility,
-  setTheme,
-  show
+  Image,
+  transformImage
 };

@@ -58,60 +58,29 @@ var Channel = class {
     return this[SERIALIZE_TO_IPC_FN]();
   }
 };
-async function checkPermissions(plugin) {
-  return invoke(`plugin:${plugin}|check_permissions`);
-}
-async function requestPermissions(plugin) {
-  return invoke(`plugin:${plugin}|request_permissions`);
-}
 async function invoke(cmd, args = {}, options) {
   return window.__TAURI_INTERNALS__.invoke(cmd, args, options);
 }
 
-// tauri-plugins/plugins/barcode-scanner/guest-js/index.ts
-var Format = /* @__PURE__ */ ((Format2) => {
-  Format2["QRCode"] = "QR_CODE";
-  Format2["UPC_A"] = "UPC_A";
-  Format2["UPC_E"] = "UPC_E";
-  Format2["EAN8"] = "EAN_8";
-  Format2["EAN13"] = "EAN_13";
-  Format2["Code39"] = "CODE_39";
-  Format2["Code93"] = "CODE_93";
-  Format2["Code128"] = "CODE_128";
-  Format2["Codabar"] = "CODABAR";
-  Format2["ITF"] = "ITF";
-  Format2["Aztec"] = "AZTEC";
-  Format2["DataMatrix"] = "DATA_MATRIX";
-  Format2["PDF417"] = "PDF_417";
-  Format2["GS1DataBar"] = "GS1_DATA_BAR";
-  Format2["GS1DataBarLimited"] = "GS1_DATA_BAR_LIMITED";
-  Format2["GS1DataBarExpanded"] = "GS1_DATA_BAR_EXPANDED";
-  return Format2;
-})(Format || {});
-async function scan(options) {
-  return await invoke("plugin:barcode-scanner|scan", { ...options });
+// tauri-plugins/plugins/opener/guest-js/index.ts
+async function openUrl(url, openWith) {
+  await invoke("plugin:opener|open_url", {
+    url,
+    with: openWith
+  });
 }
-async function cancel() {
-  await invoke("plugin:barcode-scanner|cancel");
+async function openPath(path, openWith) {
+  await invoke("plugin:opener|open_path", {
+    path,
+    with: openWith
+  });
 }
-async function checkPermissions2() {
-  return await checkPermissions(
-    "barcode-scanner"
-  ).then((r) => r.camera);
-}
-async function requestPermissions2() {
-  return await requestPermissions(
-    "barcode-scanner"
-  ).then((r) => r.camera);
-}
-async function openAppSettings() {
-  await invoke("plugin:barcode-scanner|open_app_settings");
+async function revealItemInDir(path) {
+  const paths = typeof path === "string" ? [path] : path;
+  return invoke("plugin:opener|reveal_item_in_dir", { paths });
 }
 export {
-  Format,
-  cancel,
-  checkPermissions2 as checkPermissions,
-  openAppSettings,
-  requestPermissions2 as requestPermissions,
-  scan
+  openPath,
+  openUrl,
+  revealItemInDir
 };
