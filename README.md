@@ -19,12 +19,12 @@
     </a>
     <a href="/LICENSE_MIT"><img src="https://img.shields.io/badge/license-MIT-0084ff"></a>
     <a href="/LICENSE_APACHE-2.0"><img src="https://img.shields.io/badge/license-APACHE--2.0-0084ff"></a>
-    <a href="https://crates.io/crates/tauri_wasm"><img src="https://img.shields.io/crates/v/tauri_wasm?style=flat-square"></a>
+    <a href="https://crates.io/crates/tauri-wasm-rs"><img src="https://img.shields.io/crates/v/tauri-wasm-rs?style=flat-square"></a>
 </div>
 
 <div align="center">
     <img src="https://img.shields.io/badge/API_Version-2.9.5-FE7A36">
-    <img src="https://img.shields.io/badge/tauri__wasm-unofficial-FE7A36">
+    <img src="https://img.shields.io/badge/tauri--wasm--rs-unofficial-FE7A36">
     <a href="https://github.com/JonasKruckenberg/tauri-sys"><img src="https://img.shields.io/badge/tauri__sys-tauri_v1-65B741"></a>
 </div>
 
@@ -32,7 +32,7 @@
 
 ```toml
 [dependencies]
-tauri_wasm = { git = "https://github.com/p1mo/tauri-wasm", tag = "v0.1.3-dev", features = [
+tauri-wasm-rs = { git = "https://github.com/p1mo/tauri-wasm", tag = "v0.1.3-dev", features = [
         "all", # for all api bindings
         "plugin-all" # for all plugin bindings. should you do this? no.
 ] }
