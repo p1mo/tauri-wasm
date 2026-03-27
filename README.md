@@ -19,6 +19,7 @@
     </a>
     <a href="/LICENSE_MIT"><img src="https://img.shields.io/badge/license-MIT-0084ff"></a>
     <a href="/LICENSE_APACHE-2.0"><img src="https://img.shields.io/badge/license-APACHE--2.0-0084ff"></a>
+    <a href="https://crates.io/crates/tauri-wasm"><img src="https://img.shields.io/crates/v/tauri-wasm?style=flat-square"></a>
 </div>
 
 <div align="center">

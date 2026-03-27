@@ -1,7 +1,14 @@
 [package]
 name    = "tauri-wasm"
-version = "0.1.1"
+version = "0.1.3"
 edition = "2024"
+description = "tauri wasm bindings"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/p1mo/tauri-wasm"
+readme = "README.md"
+keywords = ["js", "ts", "deno", "plugins"]
+categories = ["development-tools"]
+authors = ["p1mo <101986259+p1mo@users.noreply.github.com>"]
 
 [package.metadata.docs.rs]
 all-features = true
