@@ -44,7 +44,7 @@ jobs:
             args: -p tauri-wasm-rs --all-features --no-deps
                 
         - name: Create index.html
-          run: echo '<meta http-equiv="refresh" content="0; url=tauri_wasm">' > ./target/doc/index.html
+          run: echo '<meta http-equiv="refresh" content="0; url=tauri_wasm_rs">' > ./target/doc/index.html
                 
         - name: Setup Pages
           uses: actions/configure-pages@v4
